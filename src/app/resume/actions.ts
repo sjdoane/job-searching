@@ -2,6 +2,7 @@
 
 import { buildCandidates, selectProjectsWithAI } from "@/lib/resume/ai-select";
 import { tailorBullets } from "@/lib/resume/ai-tailor";
+import { autoFitResume } from "@/lib/resume/autofit";
 import { compileResumeToPdf, type CompileResult } from "@/lib/resume/compile";
 import { getResumeData } from "@/lib/resume/data";
 import { renderResume } from "@/lib/resume/generate";
@@ -75,6 +76,59 @@ export async function buildResumeAction(
 
 export async function compileResumeAction(tex: string): Promise<CompileResult> {
   return compileResumeToPdf(tex);
+}
+
+export interface AutoFitInput {
+  track: Track;
+  jd?: string;
+  selectedProjectIds: string[];
+  bulletOverrides?: Record<string, string>;
+}
+
+export interface AutoFitResponse {
+  ok: boolean;
+  pages?: number;
+  tex?: string;
+  pdfBase64?: string;
+  selectedProjectIds?: string[];
+  removedNames?: string[];
+  fits?: boolean;
+  error?: string;
+  needsInstall?: boolean;
+}
+
+/** Compile → check one-page → trim → repeat, returning the fitted PDF + result. */
+export async function autoFitResumeAction(
+  input: AutoFitInput,
+): Promise<AutoFitResponse> {
+  const data = getResumeData();
+  const jd = input.jd?.trim() || undefined;
+  const skills = skillsOrder(data, input.track, jd);
+  const matchedKeywords = jd ? analyzeJD(data, jd).matchedKeywords : [];
+
+  const result = autoFitResume(data, {
+    track: input.track,
+    selectedProjectIds: input.selectedProjectIds,
+    skillsOrder: skills,
+    jdKeywords: matchedKeywords,
+    bulletOverrides: input.bulletOverrides,
+  });
+
+  if (!result.ok) {
+    return { ok: false, error: result.error, needsInstall: result.needsInstall };
+  }
+  const nameById = new Map(data.projects.map((p) => [p.id, p.name]));
+  return {
+    ok: true,
+    pages: result.pages,
+    tex: result.tex,
+    pdfBase64: result.pdfBase64,
+    selectedProjectIds: result.selectedProjectIds,
+    fits: result.fits,
+    removedNames: (result.removedProjectIds ?? []).map(
+      (id) => nameById.get(id) ?? id,
+    ),
+  };
 }
 
 // ---------------------------------------------------------------------------

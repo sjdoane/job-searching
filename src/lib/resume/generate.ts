@@ -38,9 +38,15 @@ export function escapeLatexHref(url: string): string {
 
 type Overrides = Record<string, string> | undefined;
 
-/** Bullets relevant to the track (a bullet with no `tracks` shows everywhere). */
-function visibleBullets(bullets: Bullet[], track: Track): Bullet[] {
-  return bullets.filter((b) => !b.tracks || b.tracks.includes(track));
+/** Bullets relevant to the track and not explicitly excluded (auto-fit trim). */
+function visibleBullets(
+  bullets: Bullet[],
+  track: Track,
+  exclude: Set<string>,
+): Bullet[] {
+  return bullets.filter(
+    (b) => !exclude.has(b.id) && (!b.tracks || b.tracks.includes(track)),
+  );
 }
 
 function bulletText(bullet: Bullet, track: Track, overrides: Overrides): string {
@@ -60,9 +66,10 @@ function experienceBlock(
   exp: Experience,
   track: Track,
   overrides: Overrides,
+  exclude: Set<string>,
 ): string {
   const date = `${exp.start} -- ${exp.end}`;
-  const bullets = visibleBullets(exp.bullets, track).map((b) =>
+  const bullets = visibleBullets(exp.bullets, track, exclude).map((b) =>
     bulletText(b, track, overrides),
   );
   return [
@@ -76,10 +83,11 @@ function projectBlock(
   project: Project,
   track: Track,
   overrides: Overrides,
+  exclude: Set<string>,
 ): string {
   // Two-line layout (name+date on line 1, org/role on line 2) keeps the title
   // line short so the right-aligned date can never collide with a long heading.
-  const bullets = visibleBullets(project.bullets, track).map((b) =>
+  const bullets = visibleBullets(project.bullets, track, exclude).map((b) =>
     bulletText(b, track, overrides),
   );
   const lines = [
@@ -174,13 +182,17 @@ export function renderResume(
     .map((id) => projectsById.get(id))
     .filter((p): p is Project => Boolean(p));
 
+  const exclude = new Set(options.excludeBulletIds ?? []);
+
   const experiences = data.experiences
     .filter((e) => !e.tracks || e.tracks.includes(options.track))
-    .map((e) => experienceBlock(e, options.track, options.bulletOverrides))
+    .map((e) =>
+      experienceBlock(e, options.track, options.bulletOverrides, exclude),
+    )
     .join("\n\n");
 
   const projects = selectedProjects
-    .map((p) => projectBlock(p, options.track, options.bulletOverrides))
+    .map((p) => projectBlock(p, options.track, options.bulletOverrides, exclude))
     .join("\n\n");
 
   const skills = orderedSkills(data, options).map(escapeLatex).join(", ");

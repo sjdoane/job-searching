@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 
 import {
   aiSelectProjectsAction,
+  autoFitResumeAction,
   buildResumeAction,
   compileResumeAction,
   tailorResumeAction,
@@ -203,20 +204,68 @@ export function ResumeBuilder({
     URL.revokeObjectURL(url);
   }
 
+  function downloadPdfFromBase64(b64: string) {
+    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    const blob = new Blob([bytes], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `resume-${track}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function autoFit() {
+    setCompileMsg(null);
+    setCompiling(true);
+    try {
+      const res = await autoFitResumeAction({
+        track,
+        jd: jd || undefined,
+        selectedProjectIds: selected,
+        bulletOverrides: overrides,
+      });
+      if (res.ok && res.pdfBase64) {
+        downloadPdfFromBase64(res.pdfBase64);
+        setResult({
+          ...result,
+          tex: res.tex ?? result.tex,
+          selectedProjectIds: res.selectedProjectIds ?? result.selectedProjectIds,
+        });
+        const removed = res.removedNames ?? [];
+        setCompileMsg({
+          ok: !!res.fits,
+          text: res.fits
+            ? removed.length
+              ? `Fit to one page ✓ — trimmed: ${removed.join(", ")}.`
+              : "Already fits on one page ✓ — PDF downloaded."
+            : `Still ${res.pages ?? "2+"} pages after trimming — shorten bullets manually.`,
+        });
+      } else if (res.needsInstall) {
+        setCompileMsg({
+          ok: false,
+          text: "Tectonic isn't installed. Run  winget install TectonicProject.Tectonic  then restart the server.",
+        });
+      } else {
+        setCompileMsg({
+          ok: false,
+          text: res.error ? `Compile error: ${res.error.slice(0, 280)}` : "Auto-fit failed.",
+        });
+      }
+    } catch (e) {
+      setCompileMsg({ ok: false, text: e instanceof Error ? e.message : "Auto-fit failed." });
+    } finally {
+      setCompiling(false);
+    }
+  }
+
   async function compilePdf() {
     setCompileMsg(null);
     setCompiling(true);
     try {
       const res = await compileResumeAction(result.tex);
       if (res.ok && res.pdfBase64) {
-        const bytes = Uint8Array.from(atob(res.pdfBase64), (c) => c.charCodeAt(0));
-        const blob = new Blob([bytes], { type: "application/pdf" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `resume-${track}.pdf`;
-        a.click();
-        URL.revokeObjectURL(url);
+        downloadPdfFromBase64(res.pdfBase64);
         const pages = res.pages ?? 1;
         setCompileMsg({
           ok: pages <= 1,
@@ -526,9 +575,17 @@ export function ResumeBuilder({
             <button
               onClick={compilePdf}
               disabled={compiling}
+              className="rounded-md border border-indigo-300 bg-white px-3 py-1.5 text-sm font-medium text-indigo-700 hover:bg-indigo-50 disabled:opacity-50"
+            >
+              {compiling ? "Working…" : "Compile to PDF"}
+            </button>
+            <button
+              onClick={autoFit}
+              disabled={compiling}
+              title="Compile, check it's one page, and trim lowest-priority content until it fits."
               className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
             >
-              {compiling ? "Compiling…" : "Compile to PDF"}
+              {compiling ? "Working…" : "Auto-fit to 1 page"}
             </button>
           </div>
         </div>

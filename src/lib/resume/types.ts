@@ -116,4 +116,6 @@ export interface RenderOptions {
    * of the track variant. Still plain text — the generator escapes it.
    */
   bulletOverrides?: Record<string, string>;
+  /** Bullet ids to omit entirely (used by the auto-fit loop to trim length). */
+  excludeBulletIds?: string[];
 }
