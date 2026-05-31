@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Personal context: cloned repos (huge) + generated profile docs. Gitignored
+    // and not part of the app — never lint them (linting _repos OOMs ESLint).
+    "samcontext/**",
   ]),
 ]);
 

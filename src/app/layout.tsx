@@ -24,6 +24,7 @@ const NAV = [
   { href: "/tracker", label: "Tracker" },
   { href: "/calendar", label: "Calendar" },
   { href: "/search", label: "Search" },
+  { href: "/resume", label: "Résumé" },
 ];
 
 export default function RootLayout({

@@ -20,6 +20,11 @@ no hosting, no accounts, your data stays local.
   (Greenhouse / Lever / Ashby) plus links to curated GitHub new-grad lists.
   Results add straight into the Tracker. No LinkedIn/Handshake scraping (against
   their ToS and a ban risk — see `docs/DECISIONS.md`).
+- **Résumé builder** — generates a track-tailored (Quant / Consulting / PM),
+  Overleaf-ready LaTeX résumé from a structured content bank of your *verified*
+  experiences and projects. Paste a job description to re-rank by keyword match.
+  Honest by construction — it only selects/reorders/re-emphasizes true content,
+  never invents. Copy or download the `.tex`.
 
 ## Getting started
 
@@ -59,10 +64,20 @@ Next.js (App Router) · TypeScript · Tailwind CSS · SQLite via better-sqlite3 
 Drizzle ORM. See `docs/ARCHITECTURE.md` for how it fits together and
 `docs/DECISIONS.md` for the why behind the big choices.
 
+## Résumé content bank (required for the builder)
+
+The résumé builder reads your personal content from
+`samcontext/profile/resume-data.ts`, which is **gitignored** (the repo is
+public). A placeholder template lives at
+[`src/lib/resume/resume-data.example.ts`](src/lib/resume/resume-data.example.ts)
+— copy it to `samcontext/profile/resume-data.ts` and fill in your real, verified
+content. (Sam's machine already has this file; a fresh clone needs it before the
+`/resume` page will build.)
+
 ## Roadmap
 
-- **Phase 2** — LaTeX résumé builder (per-track templates + per-listing
-  tailoring).
+- **Phase 2 ✅** — LaTeX résumé builder (per-track tailoring + JD keyword
+  matching) — built.
 - **Phase 3** — scheduling/goals + Google Calendar sync, read-only Gmail
   ingestion of recruiting mail, broader job sourcing, scheduled scans via
   Windows Task Scheduler.
