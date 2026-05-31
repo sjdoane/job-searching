@@ -4,6 +4,18 @@ export function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+/** True only for a real calendar date in strict YYYY-MM-DD form. */
+export function isValidISODate(s: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const d = new Date(`${s}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
+}
+
+/** Returns the string if it's a valid ISO date, else null (for sanitizing input). */
+export function validISODateOrNull(s: string | null | undefined): string | null {
+  return s && isValidISODate(s) ? s : null;
+}
+
 /** Whole days from today until the given ISO date. Negative = overdue. */
 export function daysUntil(iso: string): number {
   const today = new Date();

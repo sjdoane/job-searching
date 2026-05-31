@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { parseCsv } from "@/lib/csv";
+import { validISODateOrNull } from "@/lib/dates";
 import {
   createAssessment,
   createContact,
@@ -55,9 +56,9 @@ function targetFromForm(form: FormData): NewTarget {
     url: nullableStr(form, "url"),
     status: str(form, "status") ?? "lead",
     priority: parsePriority(form),
-    opensAt: nullableStr(form, "opensAt"),
-    deadline: nullableStr(form, "deadline"),
-    appliedAt: nullableStr(form, "appliedAt"),
+    opensAt: validISODateOrNull(str(form, "opensAt")),
+    deadline: validISODateOrNull(str(form, "deadline")),
+    appliedAt: validISODateOrNull(str(form, "appliedAt")),
     compNotes: nullableStr(form, "compNotes"),
     notes: nullableStr(form, "notes"),
   };
@@ -107,8 +108,8 @@ export async function createContactAction(form: FormData) {
     email: nullableStr(form, "email"),
     linkedin: nullableStr(form, "linkedin"),
     relationship: nullableStr(form, "relationship"),
-    lastContactedAt: nullableStr(form, "lastContactedAt"),
-    nextFollowUpAt: nullableStr(form, "nextFollowUpAt"),
+    lastContactedAt: validISODateOrNull(str(form, "lastContactedAt")),
+    nextFollowUpAt: validISODateOrNull(str(form, "nextFollowUpAt")),
     notes: nullableStr(form, "notes"),
   });
   revalidateAll();
@@ -126,8 +127,8 @@ export async function updateContactAction(form: FormData) {
     email: nullableStr(form, "email"),
     linkedin: nullableStr(form, "linkedin"),
     relationship: nullableStr(form, "relationship"),
-    lastContactedAt: nullableStr(form, "lastContactedAt"),
-    nextFollowUpAt: nullableStr(form, "nextFollowUpAt"),
+    lastContactedAt: validISODateOrNull(str(form, "lastContactedAt")),
+    nextFollowUpAt: validISODateOrNull(str(form, "nextFollowUpAt")),
     notes: nullableStr(form, "notes"),
   });
   revalidateAll();
@@ -151,7 +152,7 @@ export async function createAssessmentAction(form: FormData) {
     targetId,
     type: str(form, "type") ?? "other",
     title: nullableStr(form, "title"),
-    dueAt: nullableStr(form, "dueAt"),
+    dueAt: validISODateOrNull(str(form, "dueAt")),
     status: str(form, "status") ?? "pending",
     notes: nullableStr(form, "notes"),
   });
@@ -164,7 +165,7 @@ export async function updateAssessmentAction(form: FormData) {
   updateAssessment(id, {
     type: str(form, "type"),
     title: nullableStr(form, "title"),
-    dueAt: nullableStr(form, "dueAt"),
+    dueAt: validISODateOrNull(str(form, "dueAt")),
     status: str(form, "status"),
     notes: nullableStr(form, "notes"),
   });
@@ -238,9 +239,9 @@ export async function importTargetsAction(form: FormData) {
       location: r.location || null,
       source: r.source || "csv-import",
       url: url || null,
-      opensAt: r.opensAt || null,
-      deadline: r.deadline || null,
-      appliedAt: r.appliedAt || null,
+      opensAt: validISODateOrNull(r.opensAt),
+      deadline: validISODateOrNull(r.deadline),
+      appliedAt: validISODateOrNull(r.appliedAt),
       compNotes: r.compNotes || null,
       notes: r.notes || null,
     });
