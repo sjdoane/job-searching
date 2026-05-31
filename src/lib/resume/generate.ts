@@ -38,6 +38,11 @@ export function escapeLatexHref(url: string): string {
 
 type Overrides = Record<string, string> | undefined;
 
+/** Bullets relevant to the track (a bullet with no `tracks` shows everywhere). */
+function visibleBullets(bullets: Bullet[], track: Track): Bullet[] {
+  return bullets.filter((b) => !b.tracks || b.tracks.includes(track));
+}
+
 function bulletText(bullet: Bullet, track: Track, overrides: Overrides): string {
   return (
     overrides?.[bullet.id] ?? bullet.variants[track] ?? bullet.variants.default
@@ -57,7 +62,9 @@ function experienceBlock(
   overrides: Overrides,
 ): string {
   const date = `${exp.start} -- ${exp.end}`;
-  const bullets = exp.bullets.map((b) => bulletText(b, track, overrides));
+  const bullets = visibleBullets(exp.bullets, track).map((b) =>
+    bulletText(b, track, overrides),
+  );
   return [
     `\\entry{${escapeLatex(exp.role)}}{${escapeLatex(date)}}`,
     `\\sub{${escapeLatex(`${exp.org}, ${exp.location}`)}}`,
@@ -70,14 +77,17 @@ function projectBlock(
   track: Track,
   overrides: Overrides,
 ): string {
-  const titleRole = project.role
-    ? `${escapeLatex(project.name)} \\textnormal{--- ${escapeLatex(project.role)}}`
-    : escapeLatex(project.name);
-  const bullets = project.bullets.map((b) => bulletText(b, track, overrides));
-  return [
-    `\\entry{${titleRole}}{${escapeLatex(project.dateLabel)}}`,
-    itemize(bullets),
-  ].join("\n");
+  // Two-line layout (name+date on line 1, org/role on line 2) keeps the title
+  // line short so the right-aligned date can never collide with a long heading.
+  const bullets = visibleBullets(project.bullets, track).map((b) =>
+    bulletText(b, track, overrides),
+  );
+  const lines = [
+    `\\entry{${escapeLatex(project.name)}}{${escapeLatex(project.dateLabel)}}`,
+  ];
+  if (project.role) lines.push(`\\sub{${escapeLatex(project.role)}}`);
+  lines.push(itemize(bullets));
+  return lines.join("\n");
 }
 
 const PREAMBLE = String.raw`\documentclass[letterpaper,10pt]{article}
@@ -98,7 +108,16 @@ const PREAMBLE = String.raw`\documentclass[letterpaper,10pt]{article}
 \setlist[itemize]{leftmargin=1.4em, topsep=1pt, itemsep=1pt, parsep=0pt,
   before=\vspace{-3pt}, after=\vspace{-1pt}, label=\textbullet}
 
-\newcommand{\entry}[2]{\textbf{#1}\hfill #2\par}
+% Layout discipline: left-align (no justified-spacing wraps), forbid hyphenation
+% and widows/orphans, and avoid overfull boxes. This prevents broken words like
+% "Re-/search", lonely continuation lines, and date-collision artifacts.
+\hyphenpenalty=10000
+\exhyphenpenalty=10000
+\clubpenalty=10000
+\widowpenalty=10000
+\setlength{\emergencystretch}{2em}
+
+\newcommand{\entry}[2]{\textbf{#1}\hfill{\small #2}\par}
 \newcommand{\sub}[1]{\textit{#1}\par\vspace{1pt}}`;
 
 function header(data: ResumeData): string {
@@ -118,15 +137,16 @@ function header(data: ResumeData): string {
   ].join("\n");
 }
 
-function educationBlock(data: ResumeData): string {
+function educationBlock(data: ResumeData, track: Track): string {
   const e = data.profile.education;
+  const coursework = e.courseworkByTrack?.[track] ?? e.coursework;
   return [
     "\\section*{Education}",
     `\\entry{${escapeLatex(e.school)}}{${escapeLatex(e.dates)}}`,
     `${escapeLatex(e.degree)}\\par`,
     `GPA: ${escapeLatex(e.gpa)}\\par`,
     `${escapeLatex(e.honors)}\\par`,
-    `Course work: ${escapeLatex(e.coursework)}`,
+    `Course work: ${escapeLatex(coursework)}`,
   ].join("\n");
 }
 
@@ -134,14 +154,11 @@ function orderedSkills(data: ResumeData, options: RenderOptions): string[] {
   if (options.skillsOrder && options.skillsOrder.length > 0) {
     return options.skillsOrder;
   }
-  // Default: surface track-relevant skills first, preserving original order.
-  const relevant = data.profile.skills
+  // Only show skills relevant to the track (drop, e.g., product/design terms on
+  // a quant résumé), matched ones first.
+  return data.profile.skills
     .filter((s) => s.tracks.includes(options.track))
     .map((s) => s.name);
-  const rest = data.profile.skills
-    .filter((s) => !s.tracks.includes(options.track))
-    .map((s) => s.name);
-  return [...relevant, ...rest];
 }
 
 /**
@@ -158,6 +175,7 @@ export function renderResume(
     .filter((p): p is Project => Boolean(p));
 
   const experiences = data.experiences
+    .filter((e) => !e.tracks || e.tracks.includes(options.track))
     .map((e) => experienceBlock(e, options.track, options.bulletOverrides))
     .join("\n\n");
 
@@ -171,10 +189,11 @@ export function renderResume(
     PREAMBLE,
     "",
     "\\begin{document}",
+    "\\raggedright",
     "",
     header(data),
     "",
-    educationBlock(data),
+    educationBlock(data, options.track),
     "",
     "\\section*{Experience}",
     experiences,

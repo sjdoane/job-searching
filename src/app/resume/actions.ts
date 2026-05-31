@@ -2,6 +2,7 @@
 
 import { buildCandidates, selectProjectsWithAI } from "@/lib/resume/ai-select";
 import { tailorBullets } from "@/lib/resume/ai-tailor";
+import { compileResumeToPdf, type CompileResult } from "@/lib/resume/compile";
 import { getResumeData } from "@/lib/resume/data";
 import { renderResume } from "@/lib/resume/generate";
 import {
@@ -66,6 +67,14 @@ export async function buildResumeAction(
     matchedSkills: analysis.matchedSkills,
     projectScores: analysis.projectScores,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Compile to PDF (Tectonic) — in-app, no Overleaf
+// ---------------------------------------------------------------------------
+
+export async function compileResumeAction(tex: string): Promise<CompileResult> {
+  return compileResumeToPdf(tex);
 }
 
 // ---------------------------------------------------------------------------

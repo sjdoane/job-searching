@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import {
   aiSelectProjectsAction,
   buildResumeAction,
+  compileResumeAction,
   tailorResumeAction,
   type BuildResumeResult,
   type TailorDiff,
@@ -26,6 +27,10 @@ export function ResumeBuilder({
   const [result, setResult] = useState<BuildResumeResult>(initial);
   const [pending, startTransition] = useTransition();
   const [copied, setCopied] = useState(false);
+  const [compiling, setCompiling] = useState(false);
+  const [compileMsg, setCompileMsg] = useState<{ ok: boolean; text: string } | null>(
+    null,
+  );
 
   // AI tailoring state
   const [overrides, setOverrides] = useState<Record<string, string>>({});
@@ -196,6 +201,49 @@ export function ResumeBuilder({
     a.download = `resume-${track}.tex`;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  async function compilePdf() {
+    setCompileMsg(null);
+    setCompiling(true);
+    try {
+      const res = await compileResumeAction(result.tex);
+      if (res.ok && res.pdfBase64) {
+        const bytes = Uint8Array.from(atob(res.pdfBase64), (c) => c.charCodeAt(0));
+        const blob = new Blob([bytes], { type: "application/pdf" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `resume-${track}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+        const pages = res.pages ?? 1;
+        setCompileMsg({
+          ok: pages <= 1,
+          text:
+            pages <= 1
+              ? "Compiled ✓ — downloaded a clean 1-page PDF."
+              : `Compiled, but it's ${pages} pages — trim content to fit one page.`,
+        });
+      } else if (res.needsInstall) {
+        setCompileMsg({
+          ok: false,
+          text: "Tectonic isn't installed. Run  winget install TectonicProject.Tectonic  then restart the server.",
+        });
+      } else {
+        setCompileMsg({
+          ok: false,
+          text: res.error ? `Compile error: ${res.error.slice(0, 280)}` : "Compile failed.",
+        });
+      }
+    } catch (e) {
+      setCompileMsg({
+        ok: false,
+        text: e instanceof Error ? e.message : "Compile failed.",
+      });
+    } finally {
+      setCompiling(false);
+    }
   }
 
   return (
@@ -471,12 +519,30 @@ export function ResumeBuilder({
             </button>
             <button
               onClick={downloadTex}
-              className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700"
+              className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
             >
-              Download .tex
+              .tex
+            </button>
+            <button
+              onClick={compilePdf}
+              disabled={compiling}
+              className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+            >
+              {compiling ? "Compiling…" : "Compile to PDF"}
             </button>
           </div>
         </div>
+        {compileMsg ? (
+          <p
+            className={`rounded-md px-3 py-2 text-xs ${
+              compileMsg.ok
+                ? "bg-emerald-50 text-emerald-800"
+                : "bg-amber-50 text-amber-800"
+            }`}
+          >
+            {compileMsg.text}
+          </p>
+        ) : null}
         <textarea
           readOnly
           value={result.tex}

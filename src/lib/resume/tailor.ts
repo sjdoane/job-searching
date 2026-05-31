@@ -126,7 +126,10 @@ export function tailoredSelection(
     .map((p) => p.id);
 }
 
-/** Skills ordered for a track, optionally surfacing JD-matched skills first. */
+/**
+ * Skills for a track: only those relevant to the track (so a quant résumé drops
+ * product/design terms), with JD-matched skills surfaced first.
+ */
 export function skillsOrder(
   data: ResumeData,
   track: Track,
@@ -134,14 +137,12 @@ export function skillsOrder(
 ): string[] {
   const matched = new Set(jdText ? analyzeJD(data, jdText).matchedSkills : []);
   return data.profile.skills
+    .filter((s) => s.tracks.includes(track))
     .map((s, index) => ({ s, index }))
     .sort((a, b) => {
       const am = matched.has(a.s.name) ? 1 : 0;
       const bm = matched.has(b.s.name) ? 1 : 0;
       if (am !== bm) return bm - am;
-      const at = a.s.tracks.includes(track) ? 1 : 0;
-      const bt = b.s.tracks.includes(track) ? 1 : 0;
-      if (at !== bt) return bt - at;
       return a.index - b.index;
     })
     .map(({ s }) => s.name);

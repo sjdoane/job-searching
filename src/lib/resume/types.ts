@@ -32,6 +32,8 @@ export interface Bullet {
   /** Immutable facts + verified numbers. Variants may not exceed this. */
   groundTruth: string;
   variants: BulletVariants;
+  /** If set, only show this bullet on these tracks (relevance filter). */
+  tracks?: Track[];
 }
 
 export interface Experience {
@@ -42,6 +44,8 @@ export interface Experience {
   start: string; // e.g. "June 2025"
   end: string; // e.g. "August 2025" or "Present"
   bullets: Bullet[];
+  /** If set, only include this experience on these tracks. */
+  tracks?: Track[];
 }
 
 export interface Project {
@@ -85,6 +89,8 @@ export interface Profile {
     gpa: string;
     honors: string;
     coursework: string;
+    /** Optional per-track coursework override (e.g. trim to quant-relevant). */
+    courseworkByTrack?: Partial<Record<Track, string>>;
   };
   skills: Skill[];
 }
