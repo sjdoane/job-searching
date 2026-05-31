@@ -1,5 +1,6 @@
 "use server";
 
+import { buildCandidates, selectProjectsWithAI } from "@/lib/resume/ai-select";
 import { tailorBullets } from "@/lib/resume/ai-tailor";
 import { getResumeData } from "@/lib/resume/data";
 import { renderResume } from "@/lib/resume/generate";
@@ -64,6 +65,35 @@ export async function buildResumeAction(
     matchedKeywords: analysis.matchedKeywords,
     matchedSkills: analysis.matchedSkills,
     projectScores: analysis.projectScores,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// AI project selection — let Claude pick/order the best projects for the role
+// ---------------------------------------------------------------------------
+
+export interface AISelectInput {
+  track: Track;
+  jd?: string;
+}
+
+export interface AISelectResult {
+  ids: string[];
+  reasons: Record<string, string>;
+}
+
+export async function aiSelectProjectsAction(
+  input: AISelectInput,
+): Promise<AISelectResult> {
+  const data = getResumeData();
+  const selection = await selectProjectsWithAI(
+    input.track,
+    input.jd?.trim() ?? "",
+    buildCandidates(data),
+  );
+  return {
+    ids: selection.map((s) => s.id),
+    reasons: Object.fromEntries(selection.map((s) => [s.id, s.reason])),
   };
 }
 

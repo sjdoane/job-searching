@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 
 import {
+  aiSelectProjectsAction,
   buildResumeAction,
   tailorResumeAction,
   type BuildResumeResult,
@@ -33,6 +34,12 @@ export function ResumeBuilder({
   const [aiPending, setAiPending] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
+  // AI project-selection state
+  const [aiSelect, setAiSelect] = useState(false);
+  const [aiSelecting, setAiSelecting] = useState(false);
+  const [aiReasons, setAiReasons] = useState<Record<string, string>>({});
+  const [aiSelectError, setAiSelectError] = useState<string | null>(null);
+
   const projectById = new Map(projects.map((p) => [p.id, p]));
   const selected = result.selectedProjectIds;
   const available = projects.filter((p) => !selected.includes(p.id));
@@ -58,10 +65,46 @@ export function ResumeBuilder({
     // Variants differ per track, so AI overrides generated for another track no
     // longer apply — clear them on a track switch.
     setOverrides({});
-    startTransition(async () => {
-      const r = await buildResumeAction({ track: next, jd: jd || undefined });
+    if (aiSelect) {
+      runAISelect(next, jd || undefined);
+    } else {
+      startTransition(async () => {
+        const r = await buildResumeAction({ track: next, jd: jd || undefined });
+        setResult(r);
+      });
+    }
+  }
+
+  // Let Claude pick & order the best projects for the track + JD.
+  async function runAISelect(t: Track, j: string | undefined) {
+    setAiSelectError(null);
+    setAiSelecting(true);
+    try {
+      const res = await aiSelectProjectsAction({ track: t, jd: j });
+      setAiReasons(res.reasons);
+      const r = await buildResumeAction({
+        track: t,
+        jd: j,
+        selectedProjectIds: res.ids,
+        bulletOverrides: overrides,
+      });
       setResult(r);
-    });
+    } catch (e) {
+      setAiSelectError(e instanceof Error ? e.message : "AI selection failed.");
+      setAiSelect(false);
+    } finally {
+      setAiSelecting(false);
+    }
+  }
+
+  function toggleAiSelect(checked: boolean) {
+    setAiSelect(checked);
+    if (checked) {
+      runAISelect(track, jd || undefined);
+    } else {
+      setAiReasons({});
+      resetSuggestion();
+    }
   }
 
   async function runAITailor() {
@@ -115,7 +158,8 @@ export function ResumeBuilder({
   }
 
   function applyJD() {
-    run({ track, jd: jd || undefined });
+    if (aiSelect) runAISelect(track, jd || undefined);
+    else run({ track, jd: jd || undefined });
   }
 
   function toggleProject(id: string) {
@@ -267,9 +311,44 @@ export function ResumeBuilder({
 
         {/* Selected projects */}
         <div>
-          <div className="mb-2 text-sm font-medium text-slate-700">
-            Selected projects (in order)
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <span className="text-sm font-medium text-slate-700">
+              Selected projects (in order)
+            </span>
+            {aiSelecting ? (
+              <span className="text-xs text-violet-600">AI choosing…</span>
+            ) : null}
           </div>
+
+          <label
+            className={`mb-3 flex items-start gap-2 rounded-md border p-2.5 text-sm ${
+              aiEnabled
+                ? "cursor-pointer border-violet-200 bg-violet-50"
+                : "border-slate-200 bg-slate-50"
+            }`}
+          >
+            <input
+              type="checkbox"
+              checked={aiSelect}
+              disabled={!aiEnabled || aiSelecting}
+              onChange={(e) => toggleAiSelect(e.target.checked)}
+              className="mt-0.5"
+            />
+            <span>
+              <span className="font-medium text-slate-800">
+                Let AI choose projects for this role
+              </span>
+              <span className="block text-xs text-slate-500">
+                {aiEnabled
+                  ? "Claude picks and orders the most relevant projects for the track + job description. You can still adjust below."
+                  : "Add ANTHROPIC_API_KEY to .env.local to enable."}
+              </span>
+              {aiSelectError ? (
+                <span className="block text-xs text-rose-600">{aiSelectError}</span>
+              ) : null}
+            </span>
+          </label>
+
           <ul className="space-y-1.5">
             {selected.map((id, i) => {
               const p = projectById.get(id);
@@ -315,6 +394,11 @@ export function ResumeBuilder({
                     <div className="truncate text-xs text-slate-500">
                       {p.oneLiner}
                     </div>
+                    {aiReasons[id] ? (
+                      <div className="text-xs text-violet-600">
+                        AI: {aiReasons[id]}
+                      </div>
+                    ) : null}
                   </div>
                   <button
                     onClick={() => toggleProject(id)}
