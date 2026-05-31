@@ -24,7 +24,14 @@ no hosting, no accounts, your data stays local.
   Overleaf-ready LaTeX résumé from a structured content bank of your *verified*
   experiences and projects. Paste a job description to re-rank by keyword match.
   Honest by construction — it only selects/reorders/re-emphasizes true content,
-  never invents. Copy or download the `.tex`.
+  never invents. Optional **AI tailoring** (Anthropic) rewrites bullets to a JD
+  but stays within each bullet's ground-truth facts, with a diff to approve.
+  Copy or download the `.tex`.
+- **Inbox** — read-only scan of recent recruiting mail (Gmail), with one-click
+  "add as lead" to the tracker. Suggest-only; never modifies your mailbox.
+- **Settings** — connect Gmail + Google Calendar and check AI status. One-way
+  **calendar sync** pushes your deadlines/assessments/follow-ups to Google
+  Calendar (idempotent — re-syncing updates, never duplicates).
 
 ## Getting started
 
@@ -56,7 +63,20 @@ next launch). You can override the location with the `JSCC_DATA_DIR` env var.
 | `npm run dev`   | Run the app locally (hot reload).                      |
 | `npm run build` | Production build (also a full type + lint check).      |
 | `npm run seed`  | Insert curated MBB/quant/PM targets with open dates.   |
+| `npm run scan`  | Headless one-way calendar sync (used by Task Scheduler).|
 | `npm run lint`  | ESLint.                                                |
+
+## Connecting Gmail / Calendar / AI
+
+Copy `.env.example` to `.env.local`, paste your keys, and restart. Then open
+**Settings** in the app to connect Google (one-time consent) and confirm AI
+status. Full step-by-step for the Google Cloud setup is in `.env.example`.
+
+To automate the daily calendar sync, register a Windows Scheduled Task once:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\register-scan-task.ps1
+```
 
 ## Tech
 

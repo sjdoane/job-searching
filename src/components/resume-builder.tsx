@@ -4,7 +4,9 @@ import { useState, useTransition } from "react";
 
 import {
   buildResumeAction,
+  tailorResumeAction,
   type BuildResumeResult,
+  type TailorDiff,
 } from "@/app/resume/actions";
 import type { ProjectMeta } from "@/lib/resume/data";
 import { TRACKS, TRACK_LABEL, type Track } from "@/lib/resume/types";
@@ -12,9 +14,11 @@ import { TRACKS, TRACK_LABEL, type Track } from "@/lib/resume/types";
 export function ResumeBuilder({
   projects,
   initial,
+  aiEnabled,
 }: {
   projects: ProjectMeta[];
   initial: BuildResumeResult;
+  aiEnabled: boolean;
 }) {
   const [track, setTrack] = useState<Track>(initial.track);
   const [jd, setJd] = useState("");
@@ -22,24 +26,92 @@ export function ResumeBuilder({
   const [pending, startTransition] = useTransition();
   const [copied, setCopied] = useState(false);
 
+  // AI tailoring state
+  const [overrides, setOverrides] = useState<Record<string, string>>({});
+  const [diffs, setDiffs] = useState<TailorDiff[] | null>(null);
+  const [accepted, setAccepted] = useState<Record<string, boolean>>({});
+  const [aiPending, setAiPending] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+
   const projectById = new Map(projects.map((p) => [p.id, p]));
   const selected = result.selectedProjectIds;
   const available = projects.filter((p) => !selected.includes(p.id));
+  const overrideCount = Object.keys(overrides).length;
 
   function run(input: {
     track: Track;
     jd?: string;
     selectedProjectIds?: string[];
+    bulletOverrides?: Record<string, string>;
   }) {
     startTransition(async () => {
-      const next = await buildResumeAction(input);
+      const next = await buildResumeAction({
+        bulletOverrides: overrides,
+        ...input,
+      });
       setResult(next);
     });
   }
 
   function changeTrack(next: Track) {
     setTrack(next);
-    run({ track: next, jd: jd || undefined }); // fresh suggestion, drop manual selection
+    // Variants differ per track, so AI overrides generated for another track no
+    // longer apply — clear them on a track switch.
+    setOverrides({});
+    startTransition(async () => {
+      const r = await buildResumeAction({ track: next, jd: jd || undefined });
+      setResult(r);
+    });
+  }
+
+  async function runAITailor() {
+    setAiError(null);
+    setAiPending(true);
+    try {
+      const d = await tailorResumeAction({
+        track,
+        jd: jd || undefined,
+        selectedProjectIds: selected,
+      });
+      setDiffs(d);
+      setAccepted(Object.fromEntries(d.map((x) => [x.id, true])));
+    } catch (e) {
+      setAiError(e instanceof Error ? e.message : "AI tailoring failed.");
+    } finally {
+      setAiPending(false);
+    }
+  }
+
+  function applyDiffs() {
+    if (!diffs) return;
+    const next = { ...overrides };
+    for (const d of diffs) {
+      if (accepted[d.id]) next[d.id] = d.suggestion;
+    }
+    setOverrides(next);
+    setDiffs(null);
+    startTransition(async () => {
+      const r = await buildResumeAction({
+        track,
+        jd: jd || undefined,
+        selectedProjectIds: selected,
+        bulletOverrides: next,
+      });
+      setResult(r);
+    });
+  }
+
+  function clearOverrides() {
+    setOverrides({});
+    startTransition(async () => {
+      const r = await buildResumeAction({
+        track,
+        jd: jd || undefined,
+        selectedProjectIds: selected,
+        bulletOverrides: {},
+      });
+      setResult(r);
+    });
   }
 
   function applyJD() {
@@ -83,6 +155,7 @@ export function ResumeBuilder({
   }
 
   return (
+    <>
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
       {/* ---- Controls ---- */}
       <div className="space-y-5">
@@ -133,6 +206,45 @@ export function ResumeBuilder({
             >
               Reset to suggestion
             </button>
+          </div>
+
+          {/* AI tailoring */}
+          <div className="mt-3 rounded-md border border-slate-200 bg-slate-50 p-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-slate-700">
+                AI tailoring{" "}
+                <span className="font-normal text-slate-400">
+                  (truthful — stays within your facts)
+                </span>
+              </span>
+              {overrideCount > 0 ? (
+                <button
+                  onClick={clearOverrides}
+                  disabled={pending}
+                  className="text-xs font-medium text-rose-600 hover:underline"
+                >
+                  Clear {overrideCount} AI edit{overrideCount === 1 ? "" : "s"}
+                </button>
+              ) : null}
+            </div>
+            {aiEnabled ? (
+              <button
+                onClick={runAITailor}
+                disabled={aiPending || pending}
+                className="mt-2 rounded-md bg-violet-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-violet-700 disabled:opacity-50"
+              >
+                {aiPending ? "Tailoring…" : "AI tailor bullets to this JD"}
+              </button>
+            ) : (
+              <p className="mt-2 text-xs text-slate-500">
+                Add <code className="rounded bg-slate-200 px-1">ANTHROPIC_API_KEY</code>{" "}
+                to <code className="rounded bg-slate-200 px-1">.env.local</code> and
+                restart to enable AI tailoring.
+              </p>
+            )}
+            {aiError ? (
+              <p className="mt-2 text-xs text-rose-600">{aiError}</p>
+            ) : null}
           </div>
           {result.matchedKeywords.length > 0 ? (
             <div className="mt-3">
@@ -294,5 +406,74 @@ export function ResumeBuilder({
         </p>
       </div>
     </div>
+
+    {diffs !== null ? (
+      <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/40 p-4">
+        <div className="my-8 w-full max-w-3xl rounded-xl bg-white p-6 shadow-xl">
+          <h2 className="text-lg font-semibold">Review AI-tailored bullets</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Each suggestion stays within your verified facts. Uncheck any you
+            don&apos;t want. Nothing is applied until you click Apply.
+          </p>
+          {diffs.length === 0 ? (
+            <p className="mt-4 rounded-md bg-slate-50 px-3 py-3 text-sm text-slate-600">
+              No changes suggested — your current bullets already fit well.
+            </p>
+          ) : (
+            <ul className="mt-4 space-y-3">
+              {diffs.map((d) => (
+                <li key={d.id} className="rounded-md border border-slate-200 p-3">
+                  <label className="flex cursor-pointer items-start gap-2">
+                    <input
+                      type="checkbox"
+                      checked={accepted[d.id] ?? false}
+                      onChange={(e) =>
+                        setAccepted((a) => ({ ...a, [d.id]: e.target.checked }))
+                      }
+                      className="mt-1"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-medium text-slate-500">
+                        {d.label}
+                      </div>
+                      <div className="mt-1 text-sm text-slate-400 line-through">
+                        {d.current}
+                      </div>
+                      <div className="mt-1 text-sm font-medium text-slate-900">
+                        {d.suggestion}
+                      </div>
+                      <details className="mt-1">
+                        <summary className="cursor-pointer text-[11px] text-slate-400">
+                          ground truth
+                        </summary>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {d.groundTruth}
+                        </p>
+                      </details>
+                    </div>
+                  </label>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="mt-5 flex justify-end gap-2">
+            <button
+              onClick={() => setDiffs(null)}
+              className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={applyDiffs}
+              disabled={diffs.length === 0}
+              className="rounded-md bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700 disabled:opacity-50"
+            >
+              Apply selected
+            </button>
+          </div>
+        </div>
+      </div>
+    ) : null}
+    </>
   );
 }

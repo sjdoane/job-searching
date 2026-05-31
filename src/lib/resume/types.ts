@@ -104,4 +104,10 @@ export interface RenderOptions {
   skillsOrder?: string[];
   /** Lowercased JD keywords that matched, for skill surfacing (not inserted). */
   jdKeywords?: string[];
+  /**
+   * Per-bullet text overrides (by bullet id), e.g. AI-tailored rewrites the user
+   * has approved. When present for a bullet, this text is used verbatim instead
+   * of the track variant. Still plain text — the generator escapes it.
+   */
+  bulletOverrides?: Record<string, string>;
 }

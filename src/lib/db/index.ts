@@ -58,6 +58,13 @@ CREATE TABLE IF NOT EXISTS assessments (
   updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
 );
 
+CREATE TABLE IF NOT EXISTS calendar_links (
+  item_key TEXT PRIMARY KEY,
+  google_event_id TEXT NOT NULL,
+  summary TEXT,
+  synced_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
+);
+
 CREATE INDEX IF NOT EXISTS idx_targets_status ON targets(status);
 CREATE INDEX IF NOT EXISTS idx_targets_track ON targets(track);
 CREATE INDEX IF NOT EXISTS idx_contacts_target ON contacts(target_id);

@@ -102,6 +102,21 @@ export const assessments = sqliteTable("assessments", {
     .default(sql`(unixepoch() * 1000)`),
 });
 
+/**
+ * Maps a deadline item (stable key) to the Google Calendar event it created, so
+ * one-way sync can UPDATE instead of duplicating. See lib/google/calendar.ts.
+ */
+export const calendarLinks = sqliteTable("calendar_links", {
+  itemKey: text("item_key").primaryKey(),
+  googleEventId: text("google_event_id").notNull(),
+  summary: text("summary"),
+  syncedAt: integer("synced_at", { mode: "timestamp_ms" })
+    .notNull()
+    .default(sql`(unixepoch() * 1000)`),
+});
+
+export type CalendarLink = typeof calendarLinks.$inferSelect;
+
 export type Target = typeof targets.$inferSelect;
 export type NewTarget = typeof targets.$inferInsert;
 export type Contact = typeof contacts.$inferSelect;
