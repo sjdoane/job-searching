@@ -50,6 +50,17 @@ export const targets = sqliteTable("targets", {
     .default(sql`(unixepoch() * 1000)`),
 });
 
+/** Outreach pipeline stages for a networking contact. */
+export const OUTREACH_STAGES = [
+  "to_contact", // identified, not yet reached out
+  "reached_out", // sent an intro / referral request
+  "replied", // they responded
+  "meeting", // call / coffee chat scheduled or done
+  "referred", // they referred you / put you forward
+  "archived",
+] as const;
+export type OutreachStage = (typeof OUTREACH_STAGES)[number];
+
 /** Networking contacts, optionally linked to a target. */
 export const contacts = sqliteTable("contacts", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -62,6 +73,7 @@ export const contacts = sqliteTable("contacts", {
   email: text("email"),
   linkedin: text("linkedin"),
   relationship: text("relationship"), // alum, recruiter, referral, friend ...
+  outreachStage: text("outreach_stage").notNull().default("to_contact"),
   lastContactedAt: text("last_contacted_at"),
   nextFollowUpAt: text("next_follow_up_at"),
   notes: text("notes"),

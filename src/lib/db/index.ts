@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS contacts (
   email TEXT,
   linkedin TEXT,
   relationship TEXT,
+  outreach_stage TEXT NOT NULL DEFAULT 'to_contact',
   last_contacted_at TEXT,
   next_follow_up_at TEXT,
   notes TEXT,
@@ -71,11 +72,33 @@ CREATE INDEX IF NOT EXISTS idx_contacts_target ON contacts(target_id);
 CREATE INDEX IF NOT EXISTS idx_assessments_target ON assessments(target_id);
 `;
 
+/**
+ * Additive migrations for databases created before a column existed. CREATE
+ * TABLE IF NOT EXISTS never alters an existing table, so new columns are added
+ * here idempotently (checked against PRAGMA table_info).
+ */
+function runMigrations(sqlite: Database.Database) {
+  const ensureColumn = (table: string, column: string, ddl: string) => {
+    const cols = sqlite
+      .prepare(`PRAGMA table_info(${table})`)
+      .all() as Array<{ name: string }>;
+    if (!cols.some((c) => c.name === column)) {
+      sqlite.exec(`ALTER TABLE ${table} ADD COLUMN ${ddl}`);
+    }
+  };
+  ensureColumn(
+    "contacts",
+    "outreach_stage",
+    "outreach_stage TEXT NOT NULL DEFAULT 'to_contact'",
+  );
+}
+
 function createConnection() {
   const sqlite = new Database(getDatabasePath());
   sqlite.pragma("journal_mode = WAL");
   sqlite.pragma("foreign_keys = ON");
   sqlite.exec(BOOTSTRAP_SQL);
+  runMigrations(sqlite);
   return drizzle(sqlite, { schema });
 }
 

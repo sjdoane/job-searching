@@ -101,6 +101,72 @@ export function deleteContact(id: number) {
   return db.delete(contacts).where(eq(contacts.id, id)).run();
 }
 
+export interface ContactWithFirm {
+  contact: typeof contacts.$inferSelect;
+  firmCompany: string | null;
+  firmTrack: string | null;
+}
+
+/** All contacts joined with the firm (target) they're linked to. */
+export function listContactsWithFirm(): ContactWithFirm[] {
+  const rows = db
+    .select({
+      contact: contacts,
+      firmCompany: targets.company,
+      firmTrack: targets.track,
+    })
+    .from(contacts)
+    .leftJoin(targets, eq(contacts.targetId, targets.id))
+    .orderBy(desc(contacts.updatedAt))
+    .all();
+  return rows as ContactWithFirm[];
+}
+
+/** Lightweight {id, company} list for linking a contact to a tracked firm. */
+export function listFirmsForPicker() {
+  return db
+    .select({ id: targets.id, company: targets.company, track: targets.track })
+    .from(targets)
+    .orderBy(asc(targets.company))
+    .all();
+}
+
+/** Contacts with a follow-up due within `withinDays` (includes overdue). */
+export function dueFollowUps(withinDays = 14) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const horizon = new Date(today);
+  horizon.setDate(horizon.getDate() + withinDays);
+  return listContactsWithFirm().filter((c) => {
+    const d = c.contact.nextFollowUpAt;
+    if (!d) return false;
+    return new Date(`${d}T00:00:00`) <= horizon;
+  });
+}
+
+export function setContactStage(id: number, outreachStage: string) {
+  return db
+    .update(contacts)
+    .set({ outreachStage, updatedAt: now() })
+    .where(eq(contacts.id, id))
+    .returning()
+    .get();
+}
+
+export function getContactWithFirm(id: number): ContactWithFirm | undefined {
+  const row = db
+    .select({
+      contact: contacts,
+      firmCompany: targets.company,
+      firmTrack: targets.track,
+    })
+    .from(contacts)
+    .leftJoin(targets, eq(contacts.targetId, targets.id))
+    .where(eq(contacts.id, id))
+    .get();
+  return row as ContactWithFirm | undefined;
+}
+
 // ---------------------------------------------------------------------------
 // Assessments
 // ---------------------------------------------------------------------------

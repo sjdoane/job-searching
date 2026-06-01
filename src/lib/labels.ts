@@ -71,6 +71,41 @@ export const STATUS_COLORS: Record<string, string> = {
   archived: "bg-slate-100 text-slate-500",
 };
 
+export const OUTREACH_STAGE_OPTIONS = [
+  { value: "to_contact", label: "To contact" },
+  { value: "reached_out", label: "Reached out" },
+  { value: "replied", label: "Replied" },
+  { value: "meeting", label: "Meeting" },
+  { value: "referred", label: "Referred" },
+  { value: "archived", label: "Archived" },
+] as const;
+
+export const OUTREACH_STAGE_COLORS: Record<string, string> = {
+  to_contact: "bg-slate-100 text-slate-700",
+  reached_out: "bg-blue-100 text-blue-800",
+  replied: "bg-indigo-100 text-indigo-800",
+  meeting: "bg-purple-100 text-purple-800",
+  referred: "bg-emerald-100 text-emerald-800",
+  archived: "bg-slate-100 text-slate-500",
+};
+
+export const RELATIONSHIP_OPTIONS = [
+  { value: "alum", label: "USC Alum" },
+  { value: "recruiter", label: "Recruiter" },
+  { value: "referral", label: "Referral" },
+  { value: "employee", label: "Employee" },
+  { value: "friend", label: "Friend / Personal" },
+  { value: "other", label: "Other" },
+] as const;
+
+export const OUTREACH_KIND_OPTIONS = [
+  { value: "cold_intro", label: "Cold intro (alum/employee)" },
+  { value: "referral_request", label: "Referral request" },
+  { value: "coffee_chat", label: "Coffee chat / call ask" },
+  { value: "follow_up", label: "Follow-up nudge" },
+  { value: "thank_you", label: "Thank-you note" },
+] as const;
+
 export const DEADLINE_KIND_META: Record<
   string,
   { label: string; color: string }
