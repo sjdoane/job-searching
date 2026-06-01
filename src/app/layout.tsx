@@ -28,6 +28,7 @@ const NAV = [
   { href: "/search", label: "Search" },
   { href: "/inbox", label: "Inbox" },
   { href: "/resume", label: "Résumé" },
+  { href: "/apply", label: "Apply" },
   { href: "/settings", label: "Settings" },
 ];
 

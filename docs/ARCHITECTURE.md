@@ -36,6 +36,7 @@ src/lib/sources/* → fetch() public ATS JSON APIs (Greenhouse/Lever/Ashby)
 | `src/app/tracker/`           | Tracker page + CSV import page.                           |
 | `src/app/calendar/`          | Month grid + agenda calendar.                             |
 | `src/app/search/`            | Live ATS board search.                                    |
+| `src/app/apply/`             | AI Application Assistant: page + grounded draft action.   |
 | `src/app/actions.ts`         | All Server Actions (create/update/delete, import, add).   |
 | `src/app/api/tracker/export` | CSV export route handler.                                 |
 | `src/lib/db/paths.ts`        | Resolves the DB path **outside** OneDrive.                |
@@ -43,6 +44,9 @@ src/lib/sources/* → fetch() public ATS JSON APIs (Greenhouse/Lever/Ashby)
 | `src/lib/db/index.ts`        | Connection singleton + idempotent table bootstrap.        |
 | `src/lib/tracker.ts`         | Typed query functions + deadline aggregation.             |
 | `src/lib/sources/`           | Curated boards + ATS fetchers/normalizers.                |
+| `src/lib/apply/assistant.ts` | Grounded application-answer generation (Anthropic).       |
+| `src/lib/networking/`        | Grounded networking-outreach generation (Anthropic).      |
+| `src/lib/resume/`            | Résumé content bank loader, generator, AI tailor/select.  |
 | `src/lib/labels.ts`          | UI-facing constants/colors (client-safe, no DB import).   |
 | `src/lib/dates.ts`, `csv.ts` | Pure helpers (no I/O).                                     |
 | `src/components/`            | UI primitives + the tracker board / target form.          |
@@ -77,6 +81,26 @@ dates, and contact follow-ups into one sorted stream.
 - Pages that read the DB set `export const dynamic = "force-dynamic"` so they
   render per-request and never get statically cached.
 - The DB connection is cached on `globalThis` to survive dev hot-reloads.
+
+## AI features (honest by construction)
+
+Three surfaces call Anthropic, all gated on `ANTHROPIC_API_KEY` via
+`hasAnthropic()` and all sharing one honesty discipline: **the model may only use
+facts we hand it.**
+
+- **Résumé tailoring/selection** (`src/lib/resume/ai-*.ts`) — rewrites bullets
+  within each bullet's immutable `groundTruth`; never adds a metric or claim.
+- **Networking outreach** (`src/lib/networking/outreach.ts`) — drafts messages
+  from a profile blurb + the firm's notes; never invents a shared connection.
+- **Application Assistant** (`src/lib/apply/assistant.ts`) — drafts "why this
+  firm" / "why this role" / short-answer / cover-letter responses. Grounds on the
+  audited résumé bank (each bullet's `groundTruth`, **not** the polished
+  variants) and references the firm using **only** its tracker notes. Thin notes
+  → honest, general firm references plus a `note` telling the user what to add.
+
+The static grounding (system prompt + profile facts) goes in cached system
+blocks (`cache_control`), so regenerations are cheap. These modules are
+`server-only`; the client imports the kind/label unions from `src/lib/labels.ts`.
 
 ## Schema changes
 

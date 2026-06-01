@@ -9,11 +9,14 @@ no hosting, no accounts, your data stays local.
 > by *referrals/networking*. So the tool leads with deadlines and a tracker, not
 > mass auto-applying.
 
-## What's here (Phase 1)
+## What's here
 
 - **Dashboard** — counts by track/stage and the next 60 days of dated items.
+- **Plan** — a weekly action queue, goals, and smart next-step suggestions.
 - **Tracker** — your watchlist: every company/role you're targeting, with a
   status pipeline, deadlines, open dates, comp, and notes. CSV import/export.
+- **Networking** — per-firm contacts with an outreach pipeline and AI-drafted,
+  genuinely-grounded outreach (cold intro, referral ask, follow-up, thank-you).
 - **Calendar** — a month grid + agenda of every dated thing (open dates,
   deadlines, assessments, contact follow-ups).
 - **Search** — live roles pulled from **public** company job boards
@@ -27,6 +30,13 @@ no hosting, no accounts, your data stays local.
   never invents. Optional **AI tailoring** (Anthropic) rewrites bullets to a JD
   but stays within each bullet's ground-truth facts, with a diff to approve.
   Copy or download the `.tex`.
+- **Application Assistant** — drafts "why this firm" / "why this role" /
+  short-answer / cover-letter responses per firm, **grounded only in your
+  verified profile bank and that firm's tracker notes**. Honest by construction:
+  it never invents a fact about you, never fabricates firm specifics (if your
+  notes are thin it keeps firm references general and tells you what to add), and
+  the draft is shown for you to edit before you use it. Gated on
+  `ANTHROPIC_API_KEY`.
 - **Inbox** — read-only scan of recent recruiting mail (Gmail), with one-click
   "add as lead" to the tracker. Suggest-only; never modifies your mailbox.
 - **Settings** — connect Gmail + Google Calendar and check AI status. One-way

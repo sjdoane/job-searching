@@ -15,6 +15,10 @@ const eslintConfig = defineConfig([
     // Personal context: cloned repos (huge) + generated profile docs. Gitignored
     // and not part of the app — never lint them (linting _repos OOMs ESLint).
     "samcontext/**",
+    // portfolio/ is a SEPARATE project (its own tsconfig/eslint/CLAUDE.md, runs
+    // in another window on port 3001). The suite's tooling must not reach into
+    // it — it resolves @/* to a different src and would fail the suite's build.
+    "portfolio/**",
   ]),
 ]);
 

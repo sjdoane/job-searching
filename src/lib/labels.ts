@@ -130,6 +130,20 @@ export const OUTREACH_KIND_OPTIONS = [
   { value: "thank_you", label: "Thank-you note" },
 ] as const;
 
+/**
+ * Application-answer types for the AI Application Assistant. The union derived
+ * here is the single source of truth — both the client UI and the server-only
+ * assistant module import `ApplicationKind` from this file.
+ */
+export const APPLICATION_KIND_OPTIONS = [
+  { value: "why_firm", label: "“Why this firm?”" },
+  { value: "why_role", label: "“Why this role?” / fit" },
+  { value: "short_answer", label: "Short-answer question" },
+  { value: "cover_letter", label: "Cover letter" },
+] as const;
+
+export type ApplicationKind = (typeof APPLICATION_KIND_OPTIONS)[number]["value"];
+
 export const DEADLINE_KIND_META: Record<
   string,
   { label: string; color: string }

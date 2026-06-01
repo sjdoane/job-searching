@@ -95,6 +95,60 @@ bundler doesn't try to bundle the native module.
 
 ---
 
+## ADR-007 — AI Application Assistant: grounded, honest, generate-and-copy
+
+**Decision:** A `/apply` page drafts application responses ("why this firm",
+"why this role", a pasted short-answer question, or a short cover letter) per
+tracked firm. It grounds on the **audited résumé bank** (`@profile/resume-data`,
+using each bullet's immutable `groundTruth`, not the polished per-track variants)
+and references the firm using **only** that firm's tracker notes. Drafts are
+shown for review/edit and copied out — **not persisted**.
+
+**Why:**
+
+- *Ground on the reconciled bank, not the raw markdown.* The markdown under
+  `samcontext/profile/` is the source, but it carries ⚠️ "confirm before submit"
+  discrepancy flags and meta-notes that must never leak into a draft.
+  `resume-data.ts` is the audited, reconciled fact set (e.g. GPA resolved to
+  3.93) already trusted by the résumé builder and outreach. Using it keeps the
+  three AI surfaces consistent and the honesty contract airtight.
+- *No invented firm facts.* Firm references come only from the tracker notes. If
+  notes are thin, the model keeps firm references honest and general (it may lean
+  on **widely-known public reputation, clearly framed as such**) and returns a
+  one-line `note` telling Sam exactly what research to add — which doubles as a
+  nudge to enrich the firm's tracker notes.
+- *Generate-and-copy, no persistence.* Matches the roadmap's "shown for review"
+  framing and the existing outreach pattern; avoids a schema change. Answers are
+  pasted into the real application portal, so the portal is the system of record.
+
+**Consequence:** `src/lib/apply/assistant.ts` is `server-only` and gated on
+`ANTHROPIC_API_KEY`; the `ApplicationKind` union lives in `src/lib/labels.ts`
+(client-safe). The library enforces the short-answer-needs-a-question rule itself
+(not just the action). If Sam later wants saved/reusable answers, add an
+`application_answers` table rather than treating exported text as the store.
+
+---
+
+## ADR-008 — Root tooling excludes the `portfolio/` project
+
+**Decision:** The suite's `tsconfig.json` and `eslint.config.mjs` exclude
+`portfolio/**`.
+
+**Why:** `portfolio/` is a separate project (its own `tsconfig`/`eslint`/
+`CLAUDE.md`, run from another window on port 3001 — see the root `CLAUDE.md`).
+The root `tsconfig` `include` is `**/*.tsx`, which was sweeping the portfolio's
+files into the **suite's** type-check; under the suite config, the portfolio's
+`@/*` alias resolves to the wrong `src`, so `npm run build` failed in the
+portfolio — even though no suite code was wrong. The "set up portfolio as a
+separate project" commit added the docs but not this build-level isolation.
+
+**Consequence:** `npm run build` / `npm run lint` at the root now type-check and
+lint only the suite. The portfolio is unaffected (it builds from its own
+`tsconfig`). Neither tool reaches across the boundary; nothing under `portfolio/`
+was modified.
+
+---
+
 ## Future decisions to revisit (not yet built)
 
 - **Scheduled scans** — use **Windows Task Scheduler** to run scans, not
