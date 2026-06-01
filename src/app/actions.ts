@@ -6,14 +6,11 @@ import { redirect } from "next/navigation";
 import { parseCsv } from "@/lib/csv";
 import { validISODateOrNull } from "@/lib/dates";
 import {
-  createAssessment,
   createContact,
   createTarget,
-  deleteAssessment,
   deleteContact,
   deleteTarget,
   targetExistsByUrl,
-  updateAssessment,
   updateContact,
   updateTarget,
 } from "@/lib/tracker";
@@ -138,44 +135,6 @@ export async function deleteContactAction(form: FormData) {
   const id = Number(form.get("id"));
   if (!id) return;
   deleteContact(id);
-  revalidateAll();
-}
-
-// ---------------------------------------------------------------------------
-// Assessments
-// ---------------------------------------------------------------------------
-
-export async function createAssessmentAction(form: FormData) {
-  const targetId = Number(form.get("targetId"));
-  if (!targetId) return;
-  createAssessment({
-    targetId,
-    type: str(form, "type") ?? "other",
-    title: nullableStr(form, "title"),
-    dueAt: validISODateOrNull(str(form, "dueAt")),
-    status: str(form, "status") ?? "pending",
-    notes: nullableStr(form, "notes"),
-  });
-  revalidateAll();
-}
-
-export async function updateAssessmentAction(form: FormData) {
-  const id = Number(form.get("id"));
-  if (!id) return;
-  updateAssessment(id, {
-    type: str(form, "type"),
-    title: nullableStr(form, "title"),
-    dueAt: validISODateOrNull(str(form, "dueAt")),
-    status: str(form, "status"),
-    notes: nullableStr(form, "notes"),
-  });
-  revalidateAll();
-}
-
-export async function deleteAssessmentAction(form: FormData) {
-  const id = Number(form.get("id"));
-  if (!id) return;
-  deleteAssessment(id);
   revalidateAll();
 }
 
