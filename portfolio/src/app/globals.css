@@ -1,0 +1,136 @@
+@import "tailwindcss";
+
+/*
+ * Engineered-dark design system.
+ * The single accent is --color-accent (warm gold) — swap that one value to
+ * re-skin the whole site (e.g. electric blue: #4d9fff).
+ */
+@theme {
+  --color-bg: #0a0a0b;
+  --color-surface: #121216;
+  --color-surface-2: #17171c;
+  --color-line: #25252b;
+  --color-ink: #ededee;
+  --color-muted: #9a9aa4;
+  --color-faint: #6b6b75;
+  --color-accent: #f5b63d;
+  --color-accent-bright: #ffd27a;
+
+  --shadow-glow: 0 0 0 1px rgba(245, 182, 61, 0.14), 0 12px 40px -12px rgba(245, 182, 61, 0.18);
+}
+
+/* Wire next/font variables into the type scale (inline so var() resolves at use). */
+@theme inline {
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", "Cascadia Code",
+    "JetBrains Mono", Menlo, Consolas, monospace;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    /* Keep anchor targets clear of the sticky nav. */
+    scroll-padding-top: 5.5rem;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "ss01", "cv01", "cv03";
+  }
+
+  ::selection {
+    background-color: color-mix(in srgb, var(--color-accent) 30%, transparent);
+    color: #fff;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  h1, h2, h3, h4 {
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  a {
+    color: inherit;
+  }
+}
+
+/* ── Helpers ───────────────────────────────────────────────────────── */
+
+/* Faint engineering grid, masked to fade toward the edges. */
+.grid-bg {
+  background-image:
+    linear-gradient(to right, rgba(237, 237, 238, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(237, 237, 238, 0.04) 1px, transparent 1px);
+  background-size: 56px 56px;
+  -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 35%, #000 35%, transparent 100%);
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 35%, #000 35%, transparent 100%);
+}
+
+/* Warm radial bloom behind the hero. */
+.hero-glow {
+  background: radial-gradient(
+    60% 50% at 50% 0%,
+    color-mix(in srgb, var(--color-accent) 12%, transparent) 0%,
+    transparent 70%
+  );
+}
+
+/* Scroll-reveal — toggled by the IntersectionObserver in <Reveal>. */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Accent gradient text for select display words. */
+.text-gradient {
+  background: linear-gradient(120deg, var(--color-accent-bright), var(--color-accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Printed résumé page margins. */
+@page {
+  margin: 0.5in;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
