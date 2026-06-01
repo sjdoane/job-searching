@@ -106,7 +106,7 @@ export async function autoFitResumeAction(
   const skills = skillsOrder(data, input.track, jd);
   const matchedKeywords = jd ? analyzeJD(data, jd).matchedKeywords : [];
 
-  const result = autoFitResume(data, {
+  const result = await autoFitResume(data, {
     track: input.track,
     selectedProjectIds: input.selectedProjectIds,
     skillsOrder: skills,

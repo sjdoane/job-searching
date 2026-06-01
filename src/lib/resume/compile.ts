@@ -5,6 +5,8 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
+import { PDFDocument } from "pdf-lib";
+
 /**
  * Compiles LaTeX to PDF locally using the Tectonic engine, if installed. This
  * powers in-app "Compile to PDF" (no Overleaf) and the one-page lint check.
@@ -50,14 +52,18 @@ export function tectonicAvailable(): boolean {
   }
 }
 
-/** Rough page count from the PDF's page objects (good enough for a 1-page gate). */
-function countPages(pdf: Buffer): number {
-  const s = pdf.toString("latin1");
-  const matches = s.match(/\/Type\s*\/Page(?![s])/g);
-  return matches ? matches.length : 1;
+/** Accurate page count via a real PDF parser (Tectonic compresses the PDF, so
+ * text-scanning the bytes does not work). */
+async function countPages(pdf: Buffer): Promise<number> {
+  try {
+    const doc = await PDFDocument.load(pdf, { updateMetadata: false });
+    return doc.getPageCount();
+  } catch {
+    return 1;
+  }
 }
 
-export function compileResumeToPdf(tex: string): CompileResult {
+export async function compileResumeToPdf(tex: string): Promise<CompileResult> {
   if (!tectonicAvailable()) {
     return { ok: false, needsInstall: true, error: "Tectonic is not installed." };
   }
@@ -75,7 +81,11 @@ export function compileResumeToPdf(tex: string): CompileResult {
       return { ok: false, error: log.slice(-1800) || "Compilation failed." };
     }
     const pdf = readFileSync(path.join(dir, "resume.pdf"));
-    return { ok: true, pdfBase64: pdf.toString("base64"), pages: countPages(pdf) };
+    return {
+      ok: true,
+      pdfBase64: pdf.toString("base64"),
+      pages: await countPages(pdf),
+    };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Compile error." };
   } finally {

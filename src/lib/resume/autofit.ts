@@ -42,25 +42,25 @@ function droppableBulletIds(data: ResumeData, selection: string[]): string[] {
   return out;
 }
 
-export function autoFitResume(
+export async function autoFitResume(
   data: ResumeData,
   base: RenderOptions,
-): AutoFitResult {
+): Promise<AutoFitResult> {
   const selection = [...base.selectedProjectIds];
   const exclude = new Set(base.excludeBulletIds ?? []);
   const removedProjectIds: string[] = [];
   let iterations = 0;
 
-  const buildAndCompile = () => {
+  const buildAndCompile = async () => {
     const tex = renderResume(data, {
       ...base,
       selectedProjectIds: selection,
       excludeBulletIds: [...exclude],
     });
-    return { tex, res: compileResumeToPdf(tex) };
+    return { tex, res: await compileResumeToPdf(tex) };
   };
 
-  let { tex, res } = buildAndCompile();
+  let { tex, res } = await buildAndCompile();
   iterations++;
   if (!res.ok) {
     return { ok: false, error: res.error, needsInstall: res.needsInstall };
@@ -70,7 +70,7 @@ export function autoFitResume(
   while ((res.pages ?? 1) > 1 && selection.length > MIN_PROJECTS && iterations < MAX_ITERATIONS) {
     const dropped = selection.pop();
     if (dropped) removedProjectIds.push(dropped);
-    ({ tex, res } = buildAndCompile());
+    ({ tex, res } = await buildAndCompile());
     iterations++;
     if (!res.ok) return { ok: false, error: res.error };
   }
@@ -82,7 +82,7 @@ export function autoFitResume(
     while ((res.pages ?? 1) > 1 && i < droppable.length && iterations < MAX_ITERATIONS) {
       exclude.add(droppable[i]);
       i++;
-      ({ tex, res } = buildAndCompile());
+      ({ tex, res } = await buildAndCompile());
       iterations++;
       if (!res.ok) return { ok: false, error: res.error };
     }
