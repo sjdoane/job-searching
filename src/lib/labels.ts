@@ -153,3 +153,24 @@ export const DEADLINE_KIND_META: Record<
   assessment: { label: "Assessment", color: "bg-amber-100 text-amber-800" },
   "follow-up": { label: "Follow-up", color: "bg-blue-100 text-blue-800" },
 };
+
+// Interview/OA prep readiness (keys aligned with PREP_CATEGORIES / PREP_STATUSES
+// in schema.ts).
+export const PREP_CATEGORY_OPTIONS = [
+  { value: "quant", label: "Quant" },
+  { value: "mbb", label: "Consulting (MBB)" },
+  { value: "pm", label: "Product / PM" },
+  { value: "behavioral", label: "Behavioral" },
+] as const;
+
+export const PREP_STATUS_OPTIONS = [
+  { value: "not_started", label: "Not started" },
+  { value: "learning", label: "Learning" },
+  { value: "ready", label: "Ready" },
+] as const;
+
+export const PREP_STATUS_COLORS: Record<string, string> = {
+  not_started: "bg-slate-100 text-slate-600",
+  learning: "bg-amber-100 text-amber-800",
+  ready: "bg-emerald-100 text-emerald-800",
+};

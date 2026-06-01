@@ -184,6 +184,34 @@ export const tasks = sqliteTable("tasks", {
     .default(sql`(unixepoch() * 1000)`),
 });
 
+/**
+ * Interview/OA prep readiness areas, grouped by category. These are cross-firm
+ * (you prep "probability" once, not per firm); concrete dated events live in
+ * `assessments` and scheduled study work lives in `tasks` (kind study/prep).
+ */
+export const PREP_CATEGORIES = ["quant", "mbb", "pm", "behavioral"] as const;
+export type PrepCategory = (typeof PREP_CATEGORIES)[number];
+
+export const PREP_STATUSES = ["not_started", "learning", "ready"] as const;
+export type PrepStatus = (typeof PREP_STATUSES)[number];
+
+export const prepItems = sqliteTable("prep_items", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  category: text("category").notNull().default("behavioral"),
+  topic: text("topic").notNull(),
+  status: text("status").notNull().default("not_started"),
+  resourceUrl: text("resource_url"),
+  notes: text("notes"),
+  lastReviewedAt: text("last_reviewed_at"), // ISO "YYYY-MM-DD"
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: integer("created_at", { mode: "timestamp_ms" })
+    .notNull()
+    .default(sql`(unixepoch() * 1000)`),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+    .notNull()
+    .default(sql`(unixepoch() * 1000)`),
+});
+
 export type Goal = typeof goals.$inferSelect;
 export type NewGoal = typeof goals.$inferInsert;
 export type Task = typeof tasks.$inferSelect;
@@ -195,3 +223,5 @@ export type Contact = typeof contacts.$inferSelect;
 export type NewContact = typeof contacts.$inferInsert;
 export type Assessment = typeof assessments.$inferSelect;
 export type NewAssessment = typeof assessments.$inferInsert;
+export type PrepItem = typeof prepItems.$inferSelect;
+export type NewPrepItem = typeof prepItems.$inferInsert;

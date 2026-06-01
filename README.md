@@ -37,6 +37,11 @@ no hosting, no accounts, your data stays local.
   notes are thin it keeps firm references general and tells you what to add), and
   the draft is shown for you to edit before you use it. Gated on
   `ANTHROPIC_API_KEY`.
+- **Interview Prep** — track every OA, case, and interview per firm (with due
+  dates surfaced on the Calendar/Dashboard so short quant-OA windows never
+  expire), plus a per-track readiness checklist (Quant / MBB / PM / Behavioral)
+  you can seed with a starter curriculum. "Schedule study session" drops a study
+  task straight into your Plan and Calendar.
 - **Inbox** — read-only scan of recent recruiting mail (Gmail), with one-click
   "add as lead" to the tracker. Suggest-only; never modifies your mailbox.
 - **Settings** — connect Gmail + Google Calendar and check AI status. One-way

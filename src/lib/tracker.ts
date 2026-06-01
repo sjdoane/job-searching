@@ -6,9 +6,11 @@ import {
   assessments,
   contacts,
   db,
+  prepItems,
   targets,
   type NewAssessment,
   type NewContact,
+  type NewPrepItem,
   type NewTarget,
 } from "./db";
 
@@ -204,6 +206,90 @@ export function updateAssessment(id: number, data: Partial<NewAssessment>) {
 
 export function deleteAssessment(id: number) {
   return db.delete(assessments).where(eq(assessments.id, id)).run();
+}
+
+export function setAssessmentStatus(id: number, status: string) {
+  return db
+    .update(assessments)
+    .set({ status, updatedAt: now() })
+    .where(eq(assessments.id, id))
+    .returning()
+    .get();
+}
+
+export interface AssessmentWithFirm {
+  assessment: typeof assessments.$inferSelect;
+  firmCompany: string | null;
+  firmTrack: string | null;
+}
+
+/** All assessments joined with their firm (target), soonest due first. */
+export function listAssessmentsWithFirm(): AssessmentWithFirm[] {
+  const rows = db
+    .select({
+      assessment: assessments,
+      firmCompany: targets.company,
+      firmTrack: targets.track,
+    })
+    .from(assessments)
+    .leftJoin(targets, eq(assessments.targetId, targets.id))
+    .orderBy(asc(assessments.status), asc(assessments.dueAt))
+    .all();
+  return rows as AssessmentWithFirm[];
+}
+
+// ---------------------------------------------------------------------------
+// Prep items (interview/OA readiness checklist; cross-firm)
+// ---------------------------------------------------------------------------
+
+export function listPrepItems() {
+  return db
+    .select()
+    .from(prepItems)
+    .orderBy(asc(prepItems.sortOrder), asc(prepItems.id))
+    .all();
+}
+
+export function createPrepItem(data: NewPrepItem) {
+  const ts = now();
+  return db
+    .insert(prepItems)
+    .values({ ...data, createdAt: ts, updatedAt: ts })
+    .returning()
+    .get();
+}
+
+/** Bulk insert (used to seed a starter checklist for a category). */
+export function createPrepItems(rows: NewPrepItem[]) {
+  if (rows.length === 0) return [];
+  const ts = now();
+  return db
+    .insert(prepItems)
+    .values(rows.map((r) => ({ ...r, createdAt: ts, updatedAt: ts })))
+    .returning()
+    .all();
+}
+
+export function updatePrepItem(id: number, data: Partial<NewPrepItem>) {
+  return db
+    .update(prepItems)
+    .set({ ...data, updatedAt: now() })
+    .where(eq(prepItems.id, id))
+    .returning()
+    .get();
+}
+
+export function deletePrepItem(id: number) {
+  return db.delete(prepItems).where(eq(prepItems.id, id)).run();
+}
+
+/** How many prep items exist in a category (to gate the "load starter" button). */
+export function countPrepItems(category: string) {
+  return db
+    .select({ id: prepItems.id })
+    .from(prepItems)
+    .where(eq(prepItems.category, category))
+    .all().length;
 }
 
 // ---------------------------------------------------------------------------

@@ -149,6 +149,36 @@ was modified.
 
 ---
 
+## ADR-009 — OA / Interview-Prep tracker: reuse what exists, add one lean table
+
+**Decision:** The `/prep` page is built mostly over existing infrastructure:
+
+- **Assessments** use the existing `assessments` table — the table was already
+  wired into the Calendar, Dashboard, and the planner's suggestion engine, but
+  had **no UI**. `/prep` adds the CRUD (and becomes the sole assessment UI).
+- **Readiness** is a new, lean `prep_items` table: a **cross-firm** checklist per
+  category (quant/mbb/pm/behavioral) with a status (not started → learning →
+  ready), resource link, notes, and last-reviewed date. Seedable from a starter
+  curriculum (`src/lib/prep-curriculum.ts`, client-safe).
+- **The study schedule** reuses the `tasks` table (kind `study`/`prep`) — already
+  integrated with Plan, Calendar, and suggestions — via a "schedule study
+  session" quick-add. No third scheduler.
+
+**Why:** Timing is the #1 lever, and assessments (esp. quant OAs) have short
+windows — surfacing due dates with urgency is the highest-value piece, and it
+only needed a UI. Readiness is genuinely cross-firm (you prep "probability"
+once, not per firm), so it's modeled separately from per-firm assessments and
+dated tasks. Reusing `tasks` keeps one task model instead of forking it.
+
+**Consequence:** One new table; `index.ts` DDL kept in sync with `schema.ts`. The
+inline status `<select>`s are keyed by `id:status` so they resync after a modal
+edit (a second writer). The old `*AssessmentAction`s in `src/app/actions.ts` are
+now dead (no callers) and flagged for a follow-up cleanup. `/prep` revalidates
+`/calendar`, `/plan`, and `/` (the surfaces that read assessment/task state);
+`/tracker` renders no assessment data, so it's intentionally not revalidated.
+
+---
+
 ## Future decisions to revisit (not yet built)
 
 - **Scheduled scans** — use **Windows Task Scheduler** to run scans, not

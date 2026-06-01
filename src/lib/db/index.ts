@@ -93,8 +93,22 @@ CREATE TABLE IF NOT EXISTS tasks (
   updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
 );
 
+CREATE TABLE IF NOT EXISTS prep_items (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  category TEXT NOT NULL DEFAULT 'behavioral',
+  topic TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'not_started',
+  resource_url TEXT,
+  notes TEXT,
+  last_reviewed_at TEXT,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
+  updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
+);
+
 CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
 CREATE INDEX IF NOT EXISTS idx_tasks_source ON tasks(source_key);
+CREATE INDEX IF NOT EXISTS idx_prep_category ON prep_items(category);
 
 CREATE INDEX IF NOT EXISTS idx_targets_status ON targets(status);
 CREATE INDEX IF NOT EXISTS idx_targets_track ON targets(track);

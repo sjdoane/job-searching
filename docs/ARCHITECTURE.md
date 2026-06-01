@@ -37,6 +37,7 @@ src/lib/sources/* → fetch() public ATS JSON APIs (Greenhouse/Lever/Ashby)
 | `src/app/calendar/`          | Month grid + agenda calendar.                             |
 | `src/app/search/`            | Live ATS board search.                                    |
 | `src/app/apply/`             | AI Application Assistant: page + grounded draft action.   |
+| `src/app/prep/`              | Interview-prep tracker: assessments + readiness checklist.|
 | `src/app/actions.ts`         | All Server Actions (create/update/delete, import, add).   |
 | `src/app/api/tracker/export` | CSV export route handler.                                 |
 | `src/lib/db/paths.ts`        | Resolves the DB path **outside** OneDrive.                |
@@ -54,13 +55,19 @@ src/lib/sources/* → fetch() public ATS JSON APIs (Greenhouse/Lever/Ashby)
 
 ## Data model
 
-Three tables (see `src/lib/db/schema.ts`):
+Tables (see `src/lib/db/schema.ts`):
 
 - **targets** — the core watchlist row (company, role, track, status, priority,
   `opens_at`, `deadline`, `applied_at`, comp, notes).
 - **contacts** — networking contacts, optionally linked to a target, with
   `next_follow_up_at`.
-- **assessments** — OAs/cases/games/onsites tied to a target, with `due_at`.
+- **assessments** — OAs/cases/games/onsites/interviews tied to a target, with
+  `due_at` + a status pipeline. CRUD lives on the Interview-Prep page (`/prep`).
+- **prep_items** — cross-firm interview/OA readiness checklist, grouped by
+  category (quant/mbb/pm/behavioral) with a status + resource + last-reviewed.
+- **goals** / **tasks** — the Plan page's goals and weekly action queue (tasks
+  link to a target and/or goal; `study`/`prep` tasks are the prep "schedule").
+- **calendar_links** — maps a deadline item to its synced Google Calendar event.
 
 Date-only fields are stored as ISO `YYYY-MM-DD` text (so `<input type="date">`
 round-trips cleanly); timestamps are integer epoch-ms.
