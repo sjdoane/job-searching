@@ -8,6 +8,11 @@ council-driven "why" before making non-trivial changes.
 
 ## Guardrails (load-bearing — don't violate)
 
+- **The `portfolio/` folder is a SEPARATE project** (Sam's personal portfolio
+  website, its own `portfolio/CLAUDE.md`, worked on in a different window). The
+  job-search suite lives at the repo root. **Don't modify anything under
+  `portfolio/`** from this window, and it won't touch the suite. The suite dev
+  server uses port 3000; the portfolio uses 3001.
 - **No LinkedIn/Handshake automation, ever.** ToS + account-ban risk; Handshake
   is the school's account. Search uses only public ATS APIs + curated lists.
   (ADR-002)
