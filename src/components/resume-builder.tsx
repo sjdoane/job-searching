@@ -233,13 +233,22 @@ export function ResumeBuilder({
           selectedProjectIds: res.selectedProjectIds ?? result.selectedProjectIds,
         });
         const removed = res.removedNames ?? [];
+        const added = res.addedNames ?? [];
+        const fill = res.fillPercent != null ? ` — ${res.fillPercent}% full` : "";
+        const parts: string[] = [];
+        if (added.length) parts.push(`added ${added.join(", ")}`);
+        if (removed.length) parts.push(`dropped ${removed.join(", ")}`);
+        if (res.trimmedBullets)
+          parts.push(`trimmed ${res.trimmedBullets} bullet${res.trimmedBullets === 1 ? "" : "s"}`);
+        const s = res.spacingScale;
+        if (s != null && s <= 0.88) parts.push("spacing tightened");
+        else if (s != null && s >= 1.2) parts.push("spacing opened up to fill");
+        const detail = parts.length ? ` (${parts.join("; ")})` : "";
         setCompileMsg({
           ok: !!res.fits,
           text: res.fits
-            ? removed.length
-              ? `Fit to one page ✓ — trimmed: ${removed.join(", ")}.`
-              : "Already fits on one page ✓ — PDF downloaded."
-            : `Still ${res.pages ?? "2+"} pages after trimming — shorten bullets manually.`,
+            ? `Fit to one page ✓${fill}${detail}. PDF downloaded.`
+            : `Still ${res.pages ?? "2+"} pages even at tightest spacing — remove a project or shorten bullets.`,
         });
       } else if (res.needsInstall) {
         setCompileMsg({
@@ -582,10 +591,10 @@ export function ResumeBuilder({
             <button
               onClick={autoFit}
               disabled={compiling}
-              title="Compile, check it's one page, and trim lowest-priority content until it fits."
+              title="Compile, then density-fit to exactly one full page: tighten spacing and trim trailing lines if over, add real content and expand spacing to fill if under."
               className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
             >
-              {compiling ? "Working…" : "Auto-fit to 1 page"}
+              {compiling ? "Working…" : "Auto-fit & fill 1 page"}
             </button>
           </div>
         </div>

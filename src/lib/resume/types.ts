@@ -118,4 +118,18 @@ export interface RenderOptions {
   bulletOverrides?: Record<string, string>;
   /** Bullet ids to omit entirely (used by the auto-fit loop to trim length). */
   excludeBulletIds?: string[];
+  /**
+   * When true, inject invisible zref-savepos markers + a \typeout of the text
+   * height so the compiler can report how full the page is (used by the
+   * density-aware auto-fit). Kept OUT of the user-facing .tex — only the
+   * internal measurement compiles set this.
+   */
+  measure?: boolean;
+  /**
+   * Elastic vertical-spacing multiplier (1 = the tuned default). The auto-fit
+   * nudges this within a safe band to make the chosen content fill the page
+   * exactly — tighten slightly instead of cutting a whole project when it's
+   * just over, or open up to remove dead whitespace when it's just under.
+   */
+  spacingScale?: number;
 }

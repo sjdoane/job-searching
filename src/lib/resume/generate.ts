@@ -98,23 +98,33 @@ function projectBlock(
   return lines.join("\n");
 }
 
-const PREAMBLE = String.raw`\documentclass[letterpaper,10pt]{article}
+/**
+ * The document preamble. Vertical spacing is multiplied by `scale` (1 = the
+ * tuned default) so the auto-fit can elastically tighten/expand the chosen
+ * content to fill exactly one page. `measure` adds the zref-savepos package used
+ * to report page fill. Horizontal layout, fonts, and the orphan/widow penalties
+ * are unchanged across scales.
+ */
+function buildPreamble(scale: number, measure: boolean): string {
+  const r = (n: number) => Math.round(n * scale * 100) / 100;
+  const zref = measure ? "\n\\usepackage{zref-savepos}" : "";
+  return String.raw`\documentclass[letterpaper,10pt]{article}
 
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
 \usepackage[margin=0.5in]{geometry}
 \usepackage{titlesec}
 \usepackage{enumitem}
-\usepackage[hidelinks]{hyperref}
+\usepackage[hidelinks]{hyperref}${zref}
 
 \pagestyle{empty}
 \setlength{\parindent}{0pt}
 
 \titleformat{\section}{\normalsize\bfseries\scshape}{}{0em}{}[{\titlerule[0.8pt]}]
-\titlespacing*{\section}{0pt}{8pt}{4pt}
+\titlespacing*{\section}{0pt}{${r(8)}pt}{${r(4)}pt}
 
-\setlist[itemize]{leftmargin=1.4em, topsep=1pt, itemsep=1pt, parsep=0pt,
-  before=\vspace{-3pt}, after=\vspace{-1pt}, label=\textbullet}
+\setlist[itemize]{leftmargin=1.4em, topsep=${r(1)}pt, itemsep=${r(1)}pt, parsep=0pt,
+  before=\vspace{${r(-3)}pt}, after=\vspace{${r(-1)}pt}, label=\textbullet}
 
 % Layout discipline: left-align (no justified-spacing wraps), forbid hyphenation
 % and widows/orphans, and avoid overfull boxes. This prevents broken words like
@@ -126,7 +136,8 @@ const PREAMBLE = String.raw`\documentclass[letterpaper,10pt]{article}
 \setlength{\emergencystretch}{2em}
 
 \newcommand{\entry}[2]{\textbf{#1}\hfill{\small #2}\par}
-\newcommand{\sub}[1]{\textit{#1}\par\vspace{1pt}}`;
+\newcommand{\sub}[1]{\textit{#1}\par\vspace{${r(1)}pt}}`;
+}
 
 function header(data: ResumeData): string {
   const contacts = data.profile.contacts
@@ -197,11 +208,21 @@ export function renderResume(
 
   const skills = orderedSkills(data, options).map(escapeLatex).join(", ");
 
+  // Measurement instrumentation (auto-fit only). Invisible zref markers at the
+  // top and bottom of the body + a \typeout of the page geometry let the
+  // compiler report exactly how full the page is. Never in the user-facing .tex.
+  const preamble = buildPreamble(options.spacingScale ?? 1, Boolean(options.measure));
+  const topMark = options.measure
+    ? "\\zsavepos{jsccTop}\\typeout{JSCC_GEO th=\\the\\textheight tw=\\the\\textwidth}"
+    : "";
+  const endMark = options.measure ? "\\zsavepos{jsccEnd}" : "";
+
   return [
-    PREAMBLE,
+    preamble,
     "",
     "\\begin{document}",
     "\\raggedright",
+    topMark,
     "",
     header(data),
     "",
@@ -215,6 +236,7 @@ export function renderResume(
     "",
     "\\section*{Technical Skills}",
     skills,
+    endMark,
     "",
     "\\end{document}",
     "",

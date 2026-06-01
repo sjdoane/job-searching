@@ -92,6 +92,13 @@ export interface AutoFitResponse {
   pdfBase64?: string;
   selectedProjectIds?: string[];
   removedNames?: string[];
+  addedNames?: string[];
+  /** Final page fill, 0..100, for user feedback. */
+  fillPercent?: number;
+  /** Bullets auto-fit trimmed this run. */
+  trimmedBullets?: number;
+  /** Final elastic spacing multiplier (1 = default). */
+  spacingScale?: number;
   fits?: boolean;
   error?: string;
   needsInstall?: boolean;
@@ -118,6 +125,8 @@ export async function autoFitResumeAction(
     return { ok: false, error: result.error, needsInstall: result.needsInstall };
   }
   const nameById = new Map(data.projects.map((p) => [p.id, p.name]));
+  const names = (ids: string[] | undefined) =>
+    (ids ?? []).map((id) => nameById.get(id) ?? id);
   return {
     ok: true,
     pages: result.pages,
@@ -125,9 +134,12 @@ export async function autoFitResumeAction(
     pdfBase64: result.pdfBase64,
     selectedProjectIds: result.selectedProjectIds,
     fits: result.fits,
-    removedNames: (result.removedProjectIds ?? []).map(
-      (id) => nameById.get(id) ?? id,
-    ),
+    removedNames: names(result.removedProjectIds),
+    addedNames: names(result.addedProjectIds),
+    trimmedBullets: result.trimmedBulletCount,
+    spacingScale: result.spacingScale,
+    fillPercent:
+      result.fillRatio != null ? Math.round(result.fillRatio * 100) : undefined,
   };
 }
 
