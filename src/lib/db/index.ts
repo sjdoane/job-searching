@@ -66,6 +66,36 @@ CREATE TABLE IF NOT EXISTS calendar_links (
   synced_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
 );
 
+CREATE TABLE IF NOT EXISTS goals (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  title TEXT NOT NULL,
+  horizon TEXT NOT NULL DEFAULT 'short',
+  target_date TEXT,
+  status TEXT NOT NULL DEFAULT 'active',
+  notes TEXT,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
+  updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
+);
+
+CREATE TABLE IF NOT EXISTS tasks (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  title TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'open',
+  kind TEXT NOT NULL DEFAULT 'todo',
+  priority INTEGER NOT NULL DEFAULT 2,
+  due_at TEXT,
+  target_id INTEGER REFERENCES targets(id) ON DELETE SET NULL,
+  goal_id INTEGER REFERENCES goals(id) ON DELETE SET NULL,
+  source_key TEXT,
+  notes TEXT,
+  done_at TEXT,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
+  updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
+);
+
+CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
+CREATE INDEX IF NOT EXISTS idx_tasks_source ON tasks(source_key);
+
 CREATE INDEX IF NOT EXISTS idx_targets_status ON targets(status);
 CREATE INDEX IF NOT EXISTS idx_targets_track ON targets(track);
 CREATE INDEX IF NOT EXISTS idx_contacts_target ON contacts(target_id);

@@ -71,6 +71,30 @@ export const STATUS_COLORS: Record<string, string> = {
   archived: "bg-slate-100 text-slate-500",
 };
 
+export const TASK_KIND_OPTIONS = [
+  { value: "apply", label: "Apply" },
+  { value: "network", label: "Network" },
+  { value: "prep", label: "Prep" },
+  { value: "study", label: "Study" },
+  { value: "admin", label: "Admin" },
+  { value: "todo", label: "To-do" },
+] as const;
+
+export const TASK_KIND_COLORS: Record<string, string> = {
+  apply: "bg-rose-100 text-rose-800",
+  network: "bg-blue-100 text-blue-800",
+  prep: "bg-amber-100 text-amber-800",
+  study: "bg-violet-100 text-violet-800",
+  admin: "bg-slate-100 text-slate-700",
+  todo: "bg-slate-100 text-slate-700",
+};
+
+export const GOAL_HORIZON_OPTIONS = [
+  { value: "short", label: "Short-term" },
+  { value: "medium", label: "Medium-term" },
+  { value: "long", label: "Long-term" },
+] as const;
+
 export const OUTREACH_STAGE_OPTIONS = [
   { value: "to_contact", label: "To contact" },
   { value: "reached_out", label: "Reached out" },

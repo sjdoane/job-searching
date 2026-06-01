@@ -129,6 +129,66 @@ export const calendarLinks = sqliteTable("calendar_links", {
 
 export type CalendarLink = typeof calendarLinks.$inferSelect;
 
+/** Goals: short / medium / long-term, optionally with a target date. */
+export const GOAL_HORIZONS = ["short", "medium", "long"] as const;
+export type GoalHorizon = (typeof GOAL_HORIZONS)[number];
+
+export const goals = sqliteTable("goals", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  title: text("title").notNull(),
+  horizon: text("horizon").notNull().default("short"),
+  targetDate: text("target_date"),
+  status: text("status").notNull().default("active"), // active | done
+  notes: text("notes"),
+  createdAt: integer("created_at", { mode: "timestamp_ms" })
+    .notNull()
+    .default(sql`(unixepoch() * 1000)`),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+    .notNull()
+    .default(sql`(unixepoch() * 1000)`),
+});
+
+/** Action items / to-dos. Can link to a firm and/or a goal. */
+export const TASK_KINDS = [
+  "apply",
+  "network",
+  "prep",
+  "study",
+  "admin",
+  "todo",
+] as const;
+export type TaskKind = (typeof TASK_KINDS)[number];
+
+export const tasks = sqliteTable("tasks", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  title: text("title").notNull(),
+  status: text("status").notNull().default("open"), // open | done
+  kind: text("kind").notNull().default("todo"),
+  priority: integer("priority").notNull().default(2), // 1 high .. 3 low
+  dueAt: text("due_at"),
+  targetId: integer("target_id").references(() => targets.id, {
+    onDelete: "set null",
+  }),
+  goalId: integer("goal_id").references(() => goals.id, {
+    onDelete: "set null",
+  }),
+  /** Stable key for a generated suggestion, to avoid re-suggesting it. */
+  sourceKey: text("source_key"),
+  notes: text("notes"),
+  doneAt: text("done_at"),
+  createdAt: integer("created_at", { mode: "timestamp_ms" })
+    .notNull()
+    .default(sql`(unixepoch() * 1000)`),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+    .notNull()
+    .default(sql`(unixepoch() * 1000)`),
+});
+
+export type Goal = typeof goals.$inferSelect;
+export type NewGoal = typeof goals.$inferInsert;
+export type Task = typeof tasks.$inferSelect;
+export type NewTask = typeof tasks.$inferInsert;
+
 export type Target = typeof targets.$inferSelect;
 export type NewTarget = typeof targets.$inferInsert;
 export type Contact = typeof contacts.$inferSelect;
