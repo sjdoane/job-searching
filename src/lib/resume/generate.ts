@@ -181,6 +181,21 @@ function orderedSkills(data: ResumeData, options: RenderOptions): string[] {
 }
 
 /**
+ * Experiences to render: the caller's ordered selection (tailored per
+ * application), else all track-relevant experiences in bank order.
+ */
+function selectedExperiences(data: ResumeData, options: RenderOptions): Experience[] {
+  const relevant = data.experiences.filter(
+    (e) => !e.tracks || e.tracks.includes(options.track),
+  );
+  if (!options.selectedExperienceIds) return relevant;
+  const byId = new Map(relevant.map((e) => [e.id, e]));
+  return options.selectedExperienceIds
+    .map((id) => byId.get(id))
+    .filter((e): e is Experience => Boolean(e));
+}
+
+/**
  * Pure: given the content bank and options, produce a complete, Overleaf-ready
  * LaTeX document. Referentially transparent — same inputs, same output.
  */
@@ -195,8 +210,7 @@ export function renderResume(
 
   const exclude = new Set(options.excludeBulletIds ?? []);
 
-  const experiences = data.experiences
-    .filter((e) => !e.tracks || e.tracks.includes(options.track))
+  const experiences = selectedExperiences(data, options)
     .map((e) =>
       experienceBlock(e, options.track, options.bulletOverrides, exclude),
     )

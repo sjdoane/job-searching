@@ -106,6 +106,11 @@ export interface RenderOptions {
   track: Track;
   /** Ordered project ids to include. */
   selectedProjectIds: string[];
+  /**
+   * Ordered experience ids to include (tailor the work history per application).
+   * If omitted, all track-relevant experiences in bank order are used.
+   */
+  selectedExperienceIds?: string[];
   /** Ordered skill names. If omitted, generator uses track default order. */
   skillsOrder?: string[];
   /** Lowercased JD keywords that matched, for skill surfacing (not inserted). */

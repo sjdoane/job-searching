@@ -11,15 +11,17 @@ import {
   type BuildResumeResult,
   type TailorDiff,
 } from "@/app/resume/actions";
-import type { ProjectMeta } from "@/lib/resume/data";
+import type { ExperienceMeta, ProjectMeta } from "@/lib/resume/data";
 import { TRACKS, TRACK_LABEL, type Track } from "@/lib/resume/types";
 
 export function ResumeBuilder({
   projects,
+  experiences,
   initial,
   aiEnabled,
 }: {
   projects: ProjectMeta[];
+  experiences: ExperienceMeta[];
   initial: BuildResumeResult;
   aiEnabled: boolean;
 }) {
@@ -51,10 +53,17 @@ export function ResumeBuilder({
   const available = projects.filter((p) => !selected.includes(p.id));
   const overrideCount = Object.keys(overrides).length;
 
+  const expById = new Map(experiences.map((e) => [e.id, e]));
+  const selectedExp = result.selectedExperienceIds;
+  const availableExp = experiences.filter(
+    (e) => !selectedExp.includes(e.id) && (!e.tracks || e.tracks.includes(track)),
+  );
+
   function run(input: {
     track: Track;
     jd?: string;
     selectedProjectIds?: string[];
+    selectedExperienceIds?: string[];
     bulletOverrides?: Record<string, string>;
   }) {
     startTransition(async () => {
@@ -92,6 +101,7 @@ export function ResumeBuilder({
         track: t,
         jd: j,
         selectedProjectIds: res.ids,
+        selectedExperienceIds: result.selectedExperienceIds,
         bulletOverrides: overrides,
       });
       setResult(r);
@@ -144,6 +154,7 @@ export function ResumeBuilder({
         track,
         jd: jd || undefined,
         selectedProjectIds: selected,
+        selectedExperienceIds: result.selectedExperienceIds,
         bulletOverrides: next,
       });
       setResult(r);
@@ -157,6 +168,7 @@ export function ResumeBuilder({
         track,
         jd: jd || undefined,
         selectedProjectIds: selected,
+        selectedExperienceIds: result.selectedExperienceIds,
         bulletOverrides: {},
       });
       setResult(r);
@@ -165,14 +177,15 @@ export function ResumeBuilder({
 
   function applyJD() {
     if (aiSelect) runAISelect(track, jd || undefined);
-    else run({ track, jd: jd || undefined });
+    // Re-rank projects by JD, but keep the user's tailored work history.
+    else run({ track, jd: jd || undefined, selectedExperienceIds: selectedExp });
   }
 
   function toggleProject(id: string) {
     const next = selected.includes(id)
       ? selected.filter((x) => x !== id)
       : [...selected, id];
-    run({ track, jd: jd || undefined, selectedProjectIds: next });
+    run({ track, jd: jd || undefined, selectedProjectIds: next, selectedExperienceIds: selectedExp });
   }
 
   function move(id: string, dir: -1 | 1) {
@@ -181,7 +194,23 @@ export function ResumeBuilder({
     if (swap < 0 || swap >= selected.length) return;
     const next = selected.slice();
     [next[idx], next[swap]] = [next[swap], next[idx]];
-    run({ track, jd: jd || undefined, selectedProjectIds: next });
+    run({ track, jd: jd || undefined, selectedProjectIds: next, selectedExperienceIds: selectedExp });
+  }
+
+  function toggleExperience(id: string) {
+    const next = selectedExp.includes(id)
+      ? selectedExp.filter((x) => x !== id)
+      : [...selectedExp, id];
+    run({ track, jd: jd || undefined, selectedProjectIds: selected, selectedExperienceIds: next });
+  }
+
+  function moveExperience(id: string, dir: -1 | 1) {
+    const idx = selectedExp.indexOf(id);
+    const swap = idx + dir;
+    if (swap < 0 || swap >= selectedExp.length) return;
+    const next = selectedExp.slice();
+    [next[idx], next[swap]] = [next[swap], next[idx]];
+    run({ track, jd: jd || undefined, selectedProjectIds: selected, selectedExperienceIds: next });
   }
 
   function resetSuggestion() {
@@ -223,6 +252,7 @@ export function ResumeBuilder({
         track,
         jd: jd || undefined,
         selectedProjectIds: selected,
+        selectedExperienceIds: selectedExp,
         bulletOverrides: overrides,
       });
       if (res.ok && res.pdfBase64) {
@@ -231,6 +261,8 @@ export function ResumeBuilder({
           ...result,
           tex: res.tex ?? result.tex,
           selectedProjectIds: res.selectedProjectIds ?? result.selectedProjectIds,
+          selectedExperienceIds:
+            res.selectedExperienceIds ?? result.selectedExperienceIds,
         });
         const removed = res.removedNames ?? [];
         const added = res.addedNames ?? [];
@@ -412,6 +444,94 @@ export function ResumeBuilder({
                 ))}
               </div>
             </div>
+          ) : null}
+        </div>
+
+        {/* Selected experience */}
+        <div>
+          <div className="mb-2 text-sm font-medium text-slate-700">
+            Experience (in order)
+            <span className="ml-2 font-normal text-slate-400">
+              tailor your work history per application
+            </span>
+          </div>
+          <ul className="space-y-1.5">
+            {selectedExp.map((id, i) => {
+              const e = expById.get(id);
+              if (!e) return null;
+              return (
+                <li
+                  key={id}
+                  className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2"
+                >
+                  <div className="flex flex-col">
+                    <button
+                      onClick={() => moveExperience(id, -1)}
+                      disabled={i === 0 || pending}
+                      className="text-xs text-slate-400 hover:text-slate-700 disabled:opacity-30"
+                      aria-label="Move up"
+                    >
+                      ▲
+                    </button>
+                    <button
+                      onClick={() => moveExperience(id, 1)}
+                      disabled={i === selectedExp.length - 1 || pending}
+                      className="text-xs text-slate-400 hover:text-slate-700 disabled:opacity-30"
+                      aria-label="Move down"
+                    >
+                      ▼
+                    </button>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium text-slate-900">{e.role}</div>
+                    <div className="truncate text-xs text-slate-500">
+                      {e.org} · {e.dateLabel}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => toggleExperience(id)}
+                    disabled={pending}
+                    className="text-xs font-medium text-rose-600 hover:underline"
+                  >
+                    Remove
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+          {selectedExp.length === 0 ? (
+            <p className="mt-1 text-xs text-amber-600">
+              No experience selected — add at least one below.
+            </p>
+          ) : null}
+          {availableExp.length > 0 ? (
+            <details className="mt-3">
+              <summary className="cursor-pointer text-sm text-slate-600">
+                Add experience ({availableExp.length} available)
+              </summary>
+              <ul className="mt-2 space-y-1.5">
+                {availableExp.map((e) => (
+                  <li
+                    key={e.id}
+                    className="flex items-center gap-2 rounded-md border border-dashed border-slate-200 px-3 py-2"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-slate-800">{e.role}</div>
+                      <div className="truncate text-xs text-slate-500">
+                        {e.org} · {e.dateLabel}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => toggleExperience(e.id)}
+                      disabled={pending}
+                      className="text-xs font-medium text-indigo-600 hover:underline"
+                    >
+                      + Add
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </details>
           ) : null}
         </div>
 

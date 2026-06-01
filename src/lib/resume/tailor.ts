@@ -1,4 +1,4 @@
-import type { Project, ResumeData, Track } from "./types";
+import type { Experience, Project, ResumeData, Track } from "./types";
 
 /**
  * Deterministic, honest tailoring. These functions only SELECT, ORDER, and
@@ -19,6 +19,16 @@ export function relevantProjects(data: ResumeData, track: Track): Project[] {
   return data.projects.filter(
     (p) => p.tracks.includes(track) || p.onBaseResume,
   );
+}
+
+/** Experiences relevant to a track (all, unless an experience is track-gated). */
+export function relevantExperiences(data: ResumeData, track: Track): Experience[] {
+  return data.experiences.filter((e) => !e.tracks || e.tracks.includes(track));
+}
+
+/** Default ordered experience ids for a track (bank order). */
+export function defaultExperienceSelection(data: ResumeData, track: Track): string[] {
+  return relevantExperiences(data, track).map((e) => e.id);
 }
 
 // --------------------------------------------------------------------------

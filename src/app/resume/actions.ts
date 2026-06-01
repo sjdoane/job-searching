@@ -8,6 +8,7 @@ import { getResumeData } from "@/lib/resume/data";
 import { renderResume } from "@/lib/resume/generate";
 import {
   analyzeJD,
+  defaultExperienceSelection,
   defaultSelection,
   skillsOrder,
   tailoredSelection,
@@ -19,6 +20,8 @@ export interface BuildResumeInput {
   jd?: string;
   /** If the user has manually customized the selection, pass it to preserve it. */
   selectedProjectIds?: string[];
+  /** Tailored work-history selection/order; preserved across rebuilds. */
+  selectedExperienceIds?: string[];
   /** Approved AI-tailored bullet rewrites, by bullet id. */
   bulletOverrides?: Record<string, string>;
 }
@@ -27,6 +30,7 @@ export interface BuildResumeResult {
   track: Track;
   tex: string;
   selectedProjectIds: string[];
+  selectedExperienceIds: string[];
   skillsUsed: string[];
   matchedKeywords: string[];
   matchedSkills: string[];
@@ -46,6 +50,11 @@ export async function buildResumeAction(
         ? tailoredSelection(data, input.track, jd)
         : defaultSelection(data, input.track);
 
+  const expSelection =
+    input.selectedExperienceIds && input.selectedExperienceIds.length > 0
+      ? input.selectedExperienceIds
+      : defaultExperienceSelection(data, input.track);
+
   const skills = skillsOrder(data, input.track, jd);
   const analysis = jd
     ? analyzeJD(data, jd)
@@ -54,6 +63,7 @@ export async function buildResumeAction(
   const tex = renderResume(data, {
     track: input.track,
     selectedProjectIds: selection,
+    selectedExperienceIds: expSelection,
     skillsOrder: skills,
     jdKeywords: analysis.matchedKeywords,
     bulletOverrides: input.bulletOverrides,
@@ -63,6 +73,7 @@ export async function buildResumeAction(
     track: input.track,
     tex,
     selectedProjectIds: selection,
+    selectedExperienceIds: expSelection,
     skillsUsed: skills,
     matchedKeywords: analysis.matchedKeywords,
     matchedSkills: analysis.matchedSkills,
@@ -82,6 +93,7 @@ export interface AutoFitInput {
   track: Track;
   jd?: string;
   selectedProjectIds: string[];
+  selectedExperienceIds?: string[];
   bulletOverrides?: Record<string, string>;
 }
 
@@ -91,6 +103,7 @@ export interface AutoFitResponse {
   tex?: string;
   pdfBase64?: string;
   selectedProjectIds?: string[];
+  selectedExperienceIds?: string[];
   removedNames?: string[];
   addedNames?: string[];
   /** Final page fill, 0..100, for user feedback. */
@@ -113,9 +126,15 @@ export async function autoFitResumeAction(
   const skills = skillsOrder(data, input.track, jd);
   const matchedKeywords = jd ? analyzeJD(data, jd).matchedKeywords : [];
 
+  const expSelection =
+    input.selectedExperienceIds && input.selectedExperienceIds.length > 0
+      ? input.selectedExperienceIds
+      : defaultExperienceSelection(data, input.track);
+
   const result = await autoFitResume(data, {
     track: input.track,
     selectedProjectIds: input.selectedProjectIds,
+    selectedExperienceIds: expSelection,
     skillsOrder: skills,
     jdKeywords: matchedKeywords,
     bulletOverrides: input.bulletOverrides,
@@ -133,6 +152,7 @@ export async function autoFitResumeAction(
     tex: result.tex,
     pdfBase64: result.pdfBase64,
     selectedProjectIds: result.selectedProjectIds,
+    selectedExperienceIds: expSelection,
     fits: result.fits,
     removedNames: names(result.removedProjectIds),
     addedNames: names(result.addedProjectIds),

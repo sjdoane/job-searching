@@ -29,3 +29,23 @@ export function getProjectMeta(): ProjectMeta[] {
     onBaseResume: p.onBaseResume,
   }));
 }
+
+/** Lightweight experience metadata for the client selection UI (no bullet text). */
+export interface ExperienceMeta {
+  id: string;
+  role: string;
+  org: string;
+  dateLabel: string;
+  /** Tracks this experience is gated to, if any (else relevant to all). */
+  tracks?: ResumeData["experiences"][number]["tracks"];
+}
+
+export function getExperienceMeta(): ExperienceMeta[] {
+  return resumeData.experiences.map((e) => ({
+    id: e.id,
+    role: e.role,
+    org: e.org,
+    dateLabel: `${e.start} – ${e.end}`,
+    tracks: e.tracks,
+  }));
+}

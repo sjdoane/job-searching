@@ -51,6 +51,7 @@ function removalSequence(
   track: Track,
   selection: string[],
   exclude: Set<string>,
+  experienceIds: string[] | undefined,
 ): RemoveOp[] {
   const ops: RemoveOp[] = [];
   const byId = new Map(data.projects.map((p) => [p.id, p]));
@@ -61,7 +62,9 @@ function removalSequence(
     for (let i = vis.length - 1; i >= 1; i--) ops.push({ kind: "bullet", id: vis[i].id });
     if (idx >= MIN_PROJECTS) ops.push({ kind: "project", id: selection[idx] });
   }
-  const exps = data.experiences.filter((e) => !e.tracks || e.tracks.includes(track));
+  const exps = data.experiences
+    .filter((e) => !e.tracks || e.tracks.includes(track))
+    .filter((e) => !experienceIds || experienceIds.includes(e.id));
   for (const e of [...exps].reverse()) {
     const vis = trackVisible(e.bullets, track, exclude);
     for (let i = vis.length - 1; i >= 1; i--) ops.push({ kind: "bullet", id: vis[i].id });
@@ -121,7 +124,13 @@ export async function autoFitResume(
 
     // 2) still over: remove lowest-value content, bottom-up.
     if (!fits(res)) {
-      const ops = removalSequence(data, track, selection, exclude);
+      const ops = removalSequence(
+        data,
+        track,
+        selection,
+        exclude,
+        base.selectedExperienceIds,
+      );
       let oi = 0;
       while (!fits(res) && oi < ops.length && iterations < MAX_ITERATIONS) {
         const op = ops[oi++];
