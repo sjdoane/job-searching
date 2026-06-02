@@ -20,6 +20,7 @@ export const resumeData: ResumeData = {
       { text: "(555) 123-4567" },
       { text: "you@example.com", href: "mailto:you@example.com" },
       { text: "linkedin.com/in/you", href: "https://www.linkedin.com/in/you" },
+      { text: "github.com/you", href: "https://github.com/you" },
     ],
     education: {
       school: "Your University",

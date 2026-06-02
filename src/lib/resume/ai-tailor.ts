@@ -29,8 +29,9 @@ ABSOLUTE RULES — truthfulness first:
 - If the job description offers no honest angle for a bullet, return it essentially unchanged.
 
 STYLE:
-- One concise résumé line per bullet (aim <= 240 characters), action-verb first, no first-person pronouns, no trailing period.
-- Plain text only (no markdown, no LaTeX).
+- Action-verb first, no first-person pronouns, no trailing period. Plain text only (no markdown, no LaTeX).
+- LEAD WITH IMPACT: if the groundTruth contains a quantified result (a %, $ amount, count, scale, latency, or similar), surface the single most impressive TRUE metric early in the bullet rather than burying it at the end. Never add a number that is not in groundTruth.
+- LINE ECONOMY: the résumé renders at roughly 108 characters per line. Write bullets that fill their lines — avoid one whose final wrapped line is just one or two words (a wasteful "orphan"). Either tighten the wording to occupy one fewer line, or, using ONLY groundTruth facts, add a concrete true detail to fill the last line. Aim for a length just UNDER a multiple of ~108 characters, not just over; keep each bullet <= ~300 characters.
 
 OUTPUT:
 - Return ONLY a JSON array, no prose, of objects: [{"id": "<id>", "suggestion": "<rewritten bullet>"}].
