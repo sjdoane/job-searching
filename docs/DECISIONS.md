@@ -190,10 +190,15 @@ cut-only loop, and the résumé is tailorable per application.
   parses an actual **fill ratio** (used height ÷ text height). Page count alone
   can't tell 70%-full from 99%-full.
 - *Fill, don't just cut.* Small overflow → mildly tighten elastic spacing (no
-  content lost); big overflow → drop the **lowest-value** content bottom-up
-  (thin a weak project, then drop the whole weak project), preserving top
-  projects + real experience; too short → add the next best project, then
-  binary-search the largest spacing that still fits to erase whitespace.
+  content lost); still over → **trim trailing bullets across all projects (then
+  experience) first, and drop a whole project only as a last resort** (lowest
+  priority first) — keeping an extra real project is usually worth a shorter
+  bullet elsewhere; too short → add the next best project, then binary-search the
+  largest spacing that still fits to erase whitespace.
+- *Justified body.* Text is justified (not ragged) with a wide
+  `emergencystretch` so lines fill edge-to-edge with zero overfull boxes
+  (hyphenation stays off). Per-track coursework lists are sized to fill exactly
+  one line.
 - *Tailorable work history.* `selectedExperienceIds` lets each application
   pick/reorder experiences (e.g., drop Magnolia from a quant résumé), like
   projects.
