@@ -55,9 +55,20 @@ function bulletText(bullet: Bullet, track: Track, overrides: Overrides): string 
   );
 }
 
+/**
+ * Tie the last two words of a bullet with a non-breaking space so the final
+ * wrapped line can never hold a single lonely word (e.g. "...investment
+ * assessments" won't drop "assessments" alone). Operates on already-escaped
+ * text, so the only raw ~ introduced is the intentional tie.
+ */
+function tieLastWord(escaped: string): string {
+  const i = escaped.lastIndexOf(" ");
+  return i > 0 ? `${escaped.slice(0, i)}~${escaped.slice(i + 1)}` : escaped;
+}
+
 function itemize(bullets: string[]): string {
   const items = bullets
-    .map((b) => `  \\item ${escapeLatex(b)}`)
+    .map((b) => `  \\item ${tieLastWord(escapeLatex(b))}`)
     .join("\n");
   return `\\begin{itemize}\n${items}\n\\end{itemize}`;
 }
@@ -112,6 +123,7 @@ function buildPreamble(scale: number, measure: boolean): string {
 
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
+\usepackage{microtype}
 \usepackage[margin=0.5in]{geometry}
 \usepackage{titlesec}
 \usepackage{enumitem}
@@ -135,7 +147,7 @@ function buildPreamble(scale: number, measure: boolean): string {
 \widowpenalty=10000
 % Justified body (fills lines edge-to-edge); generous emergencystretch keeps it
 % clean despite hyphenation being off, so no word bleeds past the margin.
-\setlength{\emergencystretch}{3em}
+\setlength{\emergencystretch}{4em}
 
 \newcommand{\entry}[2]{\textbf{#1}\hfill{\small #2}\par}
 \newcommand{\sub}[1]{\textit{#1}\par\vspace{${r(1)}pt}}`;
