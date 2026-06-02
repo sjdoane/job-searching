@@ -133,7 +133,9 @@ function buildPreamble(scale: number, measure: boolean): string {
 \exhyphenpenalty=10000
 \clubpenalty=10000
 \widowpenalty=10000
-\setlength{\emergencystretch}{2em}
+% Justified body (fills lines edge-to-edge); generous emergencystretch keeps it
+% clean despite hyphenation being off, so no word bleeds past the margin.
+\setlength{\emergencystretch}{3em}
 
 \newcommand{\entry}[2]{\textbf{#1}\hfill{\small #2}\par}
 \newcommand{\sub}[1]{\textit{#1}\par\vspace{${r(1)}pt}}`;
@@ -235,7 +237,6 @@ export function renderResume(
     preamble,
     "",
     "\\begin{document}",
-    "\\raggedright",
     topMark,
     "",
     header(data),

@@ -55,19 +55,27 @@ function removalSequence(
 ): RemoveOp[] {
   const ops: RemoveOp[] = [];
   const byId = new Map(data.projects.map((p) => [p.id, p]));
+  // Phase 1 - thin trailing project bullets across EVERY project (weakest
+  // project's last bullet first), keeping >=1 bullet each. Trimming a line is
+  // preferred to dropping a whole project.
   for (let idx = selection.length - 1; idx >= 0; idx--) {
     const p = byId.get(selection[idx]);
     if (!p) continue;
     const vis = trackVisible(p.bullets, track, exclude);
     for (let i = vis.length - 1; i >= 1; i--) ops.push({ kind: "bullet", id: vis[i].id });
-    if (idx >= MIN_PROJECTS) ops.push({ kind: "project", id: selection[idx] });
   }
+  // Phase 2 - thin trailing experience bullets (keep >=1 each).
   const exps = data.experiences
     .filter((e) => !e.tracks || e.tracks.includes(track))
     .filter((e) => !experienceIds || experienceIds.includes(e.id));
   for (const e of [...exps].reverse()) {
     const vis = trackVisible(e.bullets, track, exclude);
     for (let i = vis.length - 1; i >= 1; i--) ops.push({ kind: "bullet", id: vis[i].id });
+  }
+  // Phase 3 - LAST RESORT: drop whole projects, lowest-priority first, keeping
+  // the top MIN_PROJECTS. Only reached if trimming every spare bullet wasn't enough.
+  for (let idx = selection.length - 1; idx >= MIN_PROJECTS; idx--) {
+    ops.push({ kind: "project", id: selection[idx] });
   }
   return ops;
 }
