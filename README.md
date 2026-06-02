@@ -27,9 +27,12 @@ no hosting, no accounts, your data stays local.
   Overleaf-ready LaTeX résumé from a structured content bank of your *verified*
   experiences and projects. Paste a job description to re-rank by keyword match.
   Honest by construction — it only selects/reorders/re-emphasizes true content,
-  never invents. Optional **AI tailoring** (Anthropic) rewrites bullets to a JD
-  but stays within each bullet's ground-truth facts, with a diff to approve.
-  Copy or download the `.tex`.
+  never invents. Tailor **projects and experience** per application; optional
+  **AI tailoring** (Anthropic) rewrites bullets to a JD within each bullet's
+  ground-truth facts (leading with your strongest true metric), with a diff to
+  approve. A **density-aware auto-fit** measures real page fill and tightens/
+  expands spacing + trims only low-value content to fill *exactly one page* —
+  not just cut. Copy or download the `.tex`, or compile a PDF in-app.
 - **Application Assistant** — drafts "why this firm" / "why this role" /
   short-answer / cover-letter responses per firm, **grounded only in your
   verified profile bank and that firm's tracker notes**. Honest by construction:

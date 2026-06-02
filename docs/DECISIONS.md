@@ -179,6 +179,41 @@ now dead (no callers) and flagged for a follow-up cleanup. `/prep` revalidates
 
 ---
 
+## ADR-010 — Résumé auto-fit fills the page; per-application tailoring
+
+**Decision:** The "auto-fit to one page" is a **density optimizer**, not a
+cut-only loop, and the résumé is tailorable per application.
+
+- *Measure real fill.* `compile.ts` renders with invisible `zref-savepos`
+  markers + a `\typeout` of `\textheight`, runs Tectonic with
+  `--keep-intermediates --keep-logs` so the `.aux`/`.log` land in outdir, and
+  parses an actual **fill ratio** (used height ÷ text height). Page count alone
+  can't tell 70%-full from 99%-full.
+- *Fill, don't just cut.* Small overflow → mildly tighten elastic spacing (no
+  content lost); big overflow → drop the **lowest-value** content bottom-up
+  (thin a weak project, then drop the whole weak project), preserving top
+  projects + real experience; too short → add the next best project, then
+  binary-search the largest spacing that still fits to erase whitespace.
+- *Tailorable work history.* `selectedExperienceIds` lets each application
+  pick/reorder experiences (e.g., drop Magnolia from a quant résumé), like
+  projects.
+- *Impact-first, honest bullets.* AI tailoring leads with the strongest TRUE
+  metric and avoids orphan last-lines (line economy), still bound to each
+  bullet's `groundTruth`.
+
+**Why:** A recruiter-ready résumé is **dense**, not sparse. Cutting whole
+projects for a near-miss wasted good content and left a bottom gap; you can't
+optimize fill you don't measure.
+
+**Consequence:** Measurement markers/`spacingScale` are injected only for
+internal compiles — the user-facing `.tex` stays clean, valid Overleaf LaTeX
+(the chosen spacing is baked in). Honesty preserved: no invented metrics,
+auto-fit never resurrects a user-excluded bullet, and it reports what it
+dropped/trimmed and the final fill %. Deferred résumé ideas live in
+`docs/ROADMAP.md`.
+
+---
+
 ## Future decisions to revisit (not yet built)
 
 - **Scheduled scans** — use **Windows Task Scheduler** to run scans, not

@@ -47,7 +47,7 @@ src/lib/sources/* → fetch() public ATS JSON APIs (Greenhouse/Lever/Ashby)
 | `src/lib/sources/`           | Curated boards + ATS fetchers/normalizers.                |
 | `src/lib/apply/assistant.ts` | Grounded application-answer generation (Anthropic).       |
 | `src/lib/networking/`        | Grounded networking-outreach generation (Anthropic).      |
-| `src/lib/resume/`            | Résumé content bank loader, generator, AI tailor/select.  |
+| `src/lib/resume/`            | Bank loader, generator, AI tailor/select, density auto-fit + Tectonic compile/fill-measurement. |
 | `src/lib/labels.ts`          | UI-facing constants/colors (client-safe, no DB import).   |
 | `src/lib/dates.ts`, `csv.ts` | Pure helpers (no I/O).                                     |
 | `src/components/`            | UI primitives + the tracker board / target form.          |
@@ -97,6 +97,10 @@ facts we hand it.**
 
 - **Résumé tailoring/selection** (`src/lib/resume/ai-*.ts`) — rewrites bullets
   within each bullet's immutable `groundTruth`; never adds a metric or claim.
+  Leads bullets with the strongest true metric and keeps line economy (no orphan
+  last-lines). Layout: a **density-aware auto-fit** (`autofit.ts`) measures real
+  page fill (zref markers via `compile.ts`) and tightens/expands elastic spacing
+  + trims lowest-value content to fill exactly one page (ADR-010).
 - **Networking outreach** (`src/lib/networking/outreach.ts`) — drafts messages
   from a profile blurb + the firm's notes; never invents a shared connection.
 - **Application Assistant** (`src/lib/apply/assistant.ts`) — drafts "why this
