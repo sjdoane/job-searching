@@ -26,9 +26,27 @@ export function relevantExperiences(data: ResumeData, track: Track): Experience[
   return data.experiences.filter((e) => !e.tracks || e.tracks.includes(track));
 }
 
-/** Default ordered experience ids for a track (bank order). */
+const MONTHS: Record<string, number> = {
+  january: 1, february: 2, march: 3, april: 4, may: 5, june: 6,
+  july: 7, august: 8, september: 9, october: 10, november: 11, december: 12,
+};
+
+/** Sortable key from a "Month YYYY" start string (e.g. "June 2026" -> 202606). */
+function startSortKey(start: string): number {
+  const m = start.trim().toLowerCase().match(/([a-z]+)\s+(\d{4})/);
+  return m ? Number(m[2]) * 100 + (MONTHS[m[1]] ?? 0) : 0;
+}
+
+/**
+ * Default ordered experience ids for a track: reverse-chronological by start
+ * date (most recent first), so e.g. the incoming Qvest internship leads the
+ * Experience section. The user can still reorder manually in the builder.
+ */
 export function defaultExperienceSelection(data: ResumeData, track: Track): string[] {
-  return relevantExperiences(data, track).map((e) => e.id);
+  return relevantExperiences(data, track)
+    .slice()
+    .sort((a, b) => startSortKey(b.start) - startSortKey(a.start))
+    .map((e) => e.id);
 }
 
 // --------------------------------------------------------------------------
