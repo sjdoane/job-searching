@@ -78,7 +78,7 @@ next launch). You can override the location with the `JSCC_DATA_DIR` env var.
 
 | Command         | What it does                                           |
 | --------------- | ------------------------------------------------------ |
-| `npm run dev`   | Run the app locally (hot reload).                      |
+| `npm run dev`   | Run the app locally (hot reload). Auto-frees port 3000 first (stops a stale/hung dev server), so this always binds 3000 cleanly. |
 | `npm run build` | Production build (also a full type + lint check).      |
 | `npm run seed`  | Insert curated MBB/quant/PM targets with open dates.   |
 | `npm run scan`  | Headless one-way calendar sync (used by Task Scheduler).|
