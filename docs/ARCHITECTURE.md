@@ -37,6 +37,7 @@ src/lib/sources/* → fetch() public ATS JSON APIs (Greenhouse/Lever/Ashby)
 | `src/app/calendar/`          | Month grid + agenda calendar.                             |
 | `src/app/search/`            | Live ATS board search.                                    |
 | `src/app/apply/`             | AI Application Assistant: page + grounded draft action.   |
+| `src/app/write/`             | Application Writer: page + per-stage pipeline actions.     |
 | `src/app/prep/`              | Interview-prep tracker: assessments + readiness checklist.|
 | `src/app/actions.ts`         | All Server Actions (create/update/delete, import, add).   |
 | `src/app/api/tracker/export` | CSV export route handler.                                 |
@@ -46,6 +47,7 @@ src/lib/sources/* → fetch() public ATS JSON APIs (Greenhouse/Lever/Ashby)
 | `src/lib/tracker.ts`         | Typed query functions + deadline aggregation.             |
 | `src/lib/sources/`           | Curated boards + ATS fetchers/normalizers.                |
 | `src/lib/apply/assistant.ts` | Grounded application-answer generation (Anthropic).       |
+| `src/lib/apply/writer-pipeline.ts` | Multi-pass draft→judge→synthesize→polish writer (Anthropic, Opus 4.8). |
 | `src/lib/networking/`        | Grounded networking-outreach generation (Anthropic).      |
 | `src/lib/resume/`            | Bank loader, generator, AI tailor/select, density auto-fit + Tectonic compile/fill-measurement. |
 | `src/lib/labels.ts`          | UI-facing constants/colors (client-safe, no DB import).   |
@@ -91,7 +93,7 @@ dates, and contact follow-ups into one sorted stream.
 
 ## AI features (honest by construction)
 
-Three surfaces call Anthropic, all gated on `ANTHROPIC_API_KEY` via
+Four surfaces call Anthropic, all gated on `ANTHROPIC_API_KEY` via
 `hasAnthropic()` and all sharing one honesty discipline: **the model may only use
 facts we hand it.**
 
@@ -109,9 +111,28 @@ facts we hand it.**
   variants) and references the firm using **only** its tracker notes. Thin notes
   → honest, general firm references plus a `note` telling the user what to add.
 
+- **Application Writer** (`src/lib/apply/writer-pipeline.ts`) — the deep,
+  multi-pass companion to the Assistant (ADR-011). From a pasted JD (+ optional
+  firm/question/instructions/word-limit) it runs **draft → judge → synthesize →
+  polish**: ~4 diverse drafts in parallel, an adversarial structured judge per
+  draft, one synthesis grafting the strongest material, then a polish pass that
+  strips AI tells + em-dashes, enforces format/length, and re-verifies honesty
+  (with a deterministic em-dash/banned-phrase backstop and a one-shot
+  self-repair). Same grounding contract: personal facts only from the audited
+  bank's `groundTruth`, company facts only from the JD + tracker notes; every
+  draft must carry a genuine motivation beat. Runs on **Opus 4.8** with adaptive
+  thinking at high effort (`anthropic.writerModel`/`writerEffort` in config) —
+  quality over cost. The UI drives four sequential server actions
+  (`src/app/write/actions.ts`) for live staged progress and surfaces the scored
+  drafts for transparency.
+
 The static grounding (system prompt + profile facts) goes in cached system
-blocks (`cache_control`), so regenerations are cheap. These modules are
-`server-only`; the client imports the kind/label unions from `src/lib/labels.ts`.
+blocks (`cache_control`), so regenerations are cheap. The writer goes further:
+the entire shared context (applicant facts + motivation + company context + task
++ criteria) is one big cached block re-read across all ~11 calls in a run; drafts
+and judges fan out with `Promise.all`, synthesize and polish run sequentially.
+These modules are `server-only`; the client imports the kind/label unions **and**
+the writer DTO types from `src/lib/labels.ts`.
 
 ## Schema changes
 

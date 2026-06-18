@@ -219,6 +219,65 @@ dropped/trimmed and the final fill %. Deferred résumé ideas live in
 
 ---
 
+## ADR-011 — Application Writer: a multi-pass draft→judge→synthesize→polish pipeline on Opus 4.8
+
+**Decision:** Add a second, deeper application-writing surface at `/write`
+alongside the existing one-shot Application Assistant (`/apply`). The Writer
+takes a pasted job description (plus an optional firm, exact question, custom
+instructions, and word limit) and produces a cover letter, "why this company"
+essay, or short answer through a four-stage pipeline:
+
+1. **Draft** — ~4 diverse drafts in parallel (default 4 of 5 angles: bold
+   opener, maker, motivation-first, in-the-problem, trajectory), each a
+   genuinely different opening and structure.
+2. **Judge** — each draft scored adversarially with **structured output**
+   (`output_config.format` json_schema): boldness, human-voice, company
+   specificity/accuracy, honesty, craft (0–10 each), plus a motivation-beat
+   flag, an em-dash flag, keep-lines, and concrete issues. Totals are computed
+   server-side, not by the model.
+3. **Synthesize** — one call grafts the strongest lines/ideas across drafts,
+   fixes every judged issue, and pushes bolder and more human than any single
+   draft.
+4. **Polish** — strips every em-dash and banned AI tell, enforces format and
+   length, re-verifies honesty, and returns the final text + a one-line note of
+   which company specifics it used + an honesty caveat.
+
+**Why:**
+
+- *The "multi-agent review" is implemented as multiple Anthropic calls in a
+  server action*, not an external tool — drafts and judges fan out with
+  `Promise.all`; synthesize and polish run sequentially. The whole shared
+  context (applicant facts + motivation + company context + task + writing
+  criteria) is one big `cache_control` block re-read across all ~11 calls.
+- *Quality over cost (Sam's explicit priority).* Every stage runs on **Opus
+  4.8** with adaptive thinking at high effort (`anthropic.writerModel` /
+  `writerEffort`, overridable by env), independent of the cheaper default the
+  other AI surfaces use. One run is ~11 model calls and ~1–2 minutes; the UI
+  shows real staged progress (Drafting → Judging → Synthesizing → Polishing) by
+  driving four sequential server actions, and surfaces the scored drafts.
+- *Honesty stays load-bearing (ADR-007).* Personal facts come only from the
+  audited bank's `groundTruth` (never the polished variants); company facts come
+  only from the JD + tracker notes. The judge penalizes invented/inflated
+  claims; the polish re-verifies. A genuine "what motivates me" beat (creating,
+  sharing what he builds, real impact) is required in every draft — stored as an
+  optional `profile.motivation` field in the bank with a constant fallback so
+  it's always available.
+- *Bold + human by construction.* A shared criteria block bans em-dashes and a
+  specific list of AI tells; a deterministic post-polish backstop strips any
+  surviving em-dash and a one-shot self-repair re-polishes if a banned phrase or
+  over-limit length slips through (mechanical checks done in code, not by a
+  model call).
+
+**Consequence:** `src/lib/apply/writer-pipeline.ts` is `server-only` and gated
+on `ANTHROPIC_API_KEY`; the output-type/angle unions and the draft/judgment/
+result DTOs live in `src/lib/labels.ts` (client-safe). Drafts and judgments
+round-trip through the client between stages (localhost, single user — no
+threat); the honesty-critical profile grounding is rebuilt server-side each
+stage and never leaves the server. Generate-and-copy, not persisted (same as
+`/apply`). The `samcontext/` bank stays gitignored.
+
+---
+
 ## Future decisions to revisit (not yet built)
 
 - **Scheduled scans** — use **Windows Task Scheduler** to run scans, not

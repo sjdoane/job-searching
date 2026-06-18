@@ -40,6 +40,16 @@ no hosting, no accounts, your data stays local.
   notes are thin it keeps firm references general and tells you what to add), and
   the draft is shown for you to edit before you use it. Gated on
   `ANTHROPIC_API_KEY`.
+- **Application Writer** — the deep version of the Assistant. Paste a job
+  description (and optionally pick a firm, a specific question, custom
+  instructions, or a word limit) and a multi-pass pipeline writes a **bold,
+  human, honest** cover letter, "why this company" essay, or short answer:
+  it drafts several diverse angles in parallel, scores each one adversarially,
+  synthesizes the strongest material into one version, then polishes out every
+  AI tell and em-dash and re-checks honesty. Grounded only in your verified
+  profile and the firm's facts; never invents. Runs on Claude Opus 4.8 (quality
+  over cost — one run makes several model calls and takes a minute or two). The
+  scored drafts are shown for transparency. Gated on `ANTHROPIC_API_KEY`.
 - **Interview Prep** — track every OA, case, and interview per firm (with due
   dates surfaced on the Calendar/Dashboard so short quant-OA windows never
   expire), plus a per-track readiness checklist (Quant / MBB / PM / Behavioral)
