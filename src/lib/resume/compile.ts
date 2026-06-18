@@ -106,7 +106,11 @@ export function tectonicAvailable(): boolean {
   // problem then surfaces as a real compile error, not "isn't installed".
   if (bin !== defaultTectonicBin && existsSync(bin)) return true;
   try {
-    const r = spawnSync(bin, ["--version"], { timeout: 20000, encoding: "utf8" });
+    const r = spawnSync(bin, ["--version"], {
+      timeout: 20000,
+      encoding: "utf8",
+      windowsHide: true,
+    });
     return r.status === 0;
   } catch {
     return false;
@@ -148,11 +152,22 @@ export async function compileResumeToPdf(
         "--keep-logs",
         texPath,
       ],
-      { timeout: 90_000, encoding: "utf8" },
+      { timeout: 90_000, encoding: "utf8", windowsHide: true },
     );
-    if (r.status !== 0) {
+    if (r.error || r.status !== 0) {
       const log = (r.stderr || r.stdout || "").trim();
-      return { ok: false, error: log.slice(-1800) || "Compilation failed." };
+      if (log) return { ok: false, error: log.slice(-1800) };
+      // No output at all -> Tectonic never really ran (a process-LAUNCH failure,
+      // e.g. Windows 0xC0000142 DLL-init in a restricted/non-interactive dev
+      // server, or a spawn error). Give an actionable message, not a bare
+      // "Compilation failed".
+      const code = r.error
+        ? ((r.error as NodeJS.ErrnoException).code ?? r.error.message)
+        : `0x${((r.status ?? 0) >>> 0).toString(16)}`;
+      return {
+        ok: false,
+        error: `Tectonic could not start (${code}) — the LaTeX itself is fine. This usually means the dev server is in a restricted state; stop it and run \`npm run dev\` from your own terminal, then retry.`,
+      };
     }
     const pdf = readFileSync(path.join(dir, "resume.pdf"));
     const pages = await countPages(pdf);
