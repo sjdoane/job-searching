@@ -278,6 +278,38 @@ stage and never leaves the server. Generate-and-copy, not persisted (same as
 
 ---
 
+## ADR-012 — SQLite durability: checkpoint the WAL into app.db after every write
+
+**Decision:** The DB connection (`src/lib/db/index.ts`) now keeps the main
+`app.db` file current at all times: `PRAGMA wal_autocheckpoint = 1` (fold the WAL
+into `app.db` after every commit), a `wal_checkpoint(TRUNCATE)` on startup, and a
+best-effort checkpoint on normal process exit. `busy_timeout` and
+`synchronous = NORMAL` are set alongside.
+
+**Why:** A data-loss incident. In WAL mode, commits land in `app.db-wal` and only
+fold into `app.db` on a checkpoint. The old default auto-checkpoint (~1000 pages
+≈ 4 MB) plus the fact that the Next dev server is almost always killed *hard*
+(Ctrl+C, a crash, or `scripts/free-port.mjs`) without a clean SQLite close meant
+the checkpoint never ran: `app.db` sat as a near-empty 4 KB stub while
+`app.db-wal` grew to ~3 MB. When that WAL got decoupled from the main file, the
+whole tracker (83 targets, tasks, prep items) looked empty even though the bytes
+still existed in the orphaned WAL. (Recovered by grafting the orphaned WAL onto a
+fresh WAL-mode db and `VACUUM INTO` a clean file.)
+
+`wal_autocheckpoint = 1` makes the durable copy always live in `app.db` itself,
+so a lost or orphaned `-wal` can strand at most an uncommitted transaction, never
+the database. Verified: with the fix, the main file alone (WAL removed,
+simulating a hard kill) holds every committed row; without it, the same test
+leaves the main file table-less.
+
+**Consequence:** A trivial extra checkpoint per commit (invisible for a
+single-user local app). The WAL stays at ~0 bytes during normal use. This does
+not change ADR-003 (DB still lives outside OneDrive) or ADR-006 (still WAL,
+better-sqlite3, Drizzle) — it makes WAL safe against the dev server's hard-kill
+lifecycle.
+
+---
+
 ## Future decisions to revisit (not yet built)
 
 - **Scheduled scans** — use **Windows Task Scheduler** to run scans, not

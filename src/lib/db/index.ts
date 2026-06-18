@@ -137,12 +137,65 @@ function runMigrations(sqlite: Database.Database) {
   );
 }
 
-function createConnection() {
-  const sqlite = new Database(getDatabasePath());
+/**
+ * Keep the main app.db file current so committed data can never be stranded in
+ * an un-checkpointed (and possibly orphaned) WAL sidecar.
+ *
+ * Why this matters: in WAL mode, commits land in `app.db-wal` and only fold
+ * into `app.db` on a *checkpoint*. SQLite's default auto-checkpoint is ~1000
+ * pages (~4 MB), and the Next dev server is almost always killed hard (Ctrl+C,
+ * a crash, or scripts/free-port.mjs) WITHOUT a clean SQLite close — so the
+ * checkpoint never runs, the WAL grows for weeks, and `app.db` stays a near-
+ * empty 4 KB stub. If that WAL is ever decoupled from the main file (a reset,
+ * a copy, a sync hiccup), every target/task/note vanishes from the app even
+ * though the bytes still exist in the orphaned WAL. That actually happened.
+ *
+ * Defenses, in order of importance:
+ *  1. `wal_autocheckpoint = 1` — fold the WAL into app.db after *every* commit,
+ *     so the main file is always current (the durable copy is never only in the
+ *     WAL). Trivial cost for a single-user local app.
+ *  2. A `wal_checkpoint(TRUNCATE)` on startup — flush + shrink any WAL that a
+ *     prior hard-killed session left behind.
+ *  3. A best-effort checkpoint on normal process exit.
+ */
+function harden(sqlite: Database.Database) {
   sqlite.pragma("journal_mode = WAL");
   sqlite.pragma("foreign_keys = ON");
+  sqlite.pragma("busy_timeout = 5000");
+  sqlite.pragma("synchronous = NORMAL");
+  sqlite.pragma("wal_autocheckpoint = 1");
+}
+
+let exitHookInstalled = false;
+function installCheckpointOnExit(sqlite: Database.Database) {
+  if (exitHookInstalled) return;
+  exitHookInstalled = true;
+  // 'exit' fires on clean shutdown and process.exit(); the better-sqlite3
+  // pragma is synchronous, so it completes here. We deliberately do NOT hijack
+  // SIGINT/SIGTERM (that would fight Next's own dev-server shutdown) — defense
+  // #1 already guarantees app.db is current after every write, so a hard kill
+  // loses nothing.
+  process.once("exit", () => {
+    try {
+      sqlite.pragma("wal_checkpoint(TRUNCATE)");
+    } catch {
+      /* shutting down anyway */
+    }
+  });
+}
+
+function createConnection() {
+  const sqlite = new Database(getDatabasePath());
+  harden(sqlite);
   sqlite.exec(BOOTSTRAP_SQL);
   runMigrations(sqlite);
+  // Fold any WAL a previously hard-killed session left behind into app.db now.
+  try {
+    sqlite.pragma("wal_checkpoint(TRUNCATE)");
+  } catch {
+    /* non-fatal */
+  }
+  installCheckpointOnExit(sqlite);
   return drizzle(sqlite, { schema });
 }
 
