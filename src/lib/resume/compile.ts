@@ -81,6 +81,10 @@ function tectonicBin(): string {
     localAppData
       ? path.join(localAppData, "JobSearchCommandCenter", "bin", "tectonic.exe")
       : null,
+    // winget installs a shim here and adds it to PATH.
+    localAppData
+      ? path.join(localAppData, "Microsoft", "WinGet", "Links", "tectonic.exe")
+      : null,
     home ? path.join(home, ".job-search-command-center", "bin", "tectonic") : null,
   ].filter((c): c is string => Boolean(c));
   for (const c of candidates) {
@@ -95,11 +99,14 @@ export function setTectonicBinForTesting(bin: string): void {
 }
 
 export function tectonicAvailable(): boolean {
+  const bin = tectonicBin();
+  // If we resolved to a real binary file, it's installed — trust the file's
+  // existence instead of spawning `--version`, which can false-negative on a
+  // cold/slow/AV-scanned 49MB exe or in a restricted process. A genuine run
+  // problem then surfaces as a real compile error, not "isn't installed".
+  if (bin !== defaultTectonicBin && existsSync(bin)) return true;
   try {
-    const r = spawnSync(tectonicBin(), ["--version"], {
-      timeout: 8000,
-      encoding: "utf8",
-    });
+    const r = spawnSync(bin, ["--version"], { timeout: 20000, encoding: "utf8" });
     return r.status === 0;
   } catch {
     return false;
