@@ -9,6 +9,20 @@ import "server-only";
 export const anthropic = {
   apiKey: (process.env.ANTHROPIC_API_KEY ?? "").trim(),
   model: (process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-6").trim(),
+  /**
+   * The Application Writer pipeline (src/lib/apply/writer-pipeline.ts) is a
+   * deliberate, multi-pass draft → judge → synthesize → polish loop where
+   * quality matters far more than per-run cost, so it defaults to the most
+   * capable model (Opus 4.8) regardless of the cheaper default the other AI
+   * surfaces use. Override with ANTHROPIC_WRITER_MODEL if needed.
+   */
+  writerModel: (process.env.ANTHROPIC_WRITER_MODEL ?? "claude-opus-4-8").trim(),
+  /**
+   * Reasoning effort for the writer pipeline ("high" | "xhigh" | "max" | …).
+   * Higher = more deliberate drafting/judging at the cost of latency. Default
+   * "high" balances quality and turnaround across ~11 Opus calls per run.
+   */
+  writerEffort: (process.env.ANTHROPIC_WRITER_EFFORT ?? "high").trim(),
 };
 
 export function hasAnthropic(): boolean {

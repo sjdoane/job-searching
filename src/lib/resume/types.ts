@@ -82,6 +82,15 @@ export interface ContactLink {
 export interface Profile {
   name: string;
   contacts: ContactLink[];
+  /**
+   * Sam's genuine, durable motivation, in his own framing. Always available to
+   * the Application Writer so every draft can carry an authentic "what drives
+   * you" beat (creating/building, sharing the joy with others, real impact)
+   * even when the prompt doesn't ask for one. Optional on the type so the
+   * public schema stays valid; the gitignored bank supplies the value, and the
+   * writer falls back to a constant if it's absent.
+   */
+  motivation?: string;
   education: {
     school: string;
     dates: string;

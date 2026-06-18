@@ -144,6 +144,101 @@ export const APPLICATION_KIND_OPTIONS = [
 
 export type ApplicationKind = (typeof APPLICATION_KIND_OPTIONS)[number]["value"];
 
+/**
+ * The Application Writer (/write) — a deeper, multi-pass companion to the
+ * Application Assistant. Output type + draft angles + the DTOs that travel
+ * between the server pipeline and the client live here so the client never
+ * imports the server-only pipeline module (which pulls in the DB/SDK layer).
+ * Types are erased at build time; only the constant arrays ship to the browser.
+ */
+export const WRITER_OUTPUT_TYPE_OPTIONS = [
+  { value: "cover_letter", label: "Cover letter" },
+  { value: "motivation_essay", label: "“Why this company” / motivation essay" },
+  { value: "short_answer", label: "Short-answer question" },
+] as const;
+
+export type WriterOutputType =
+  (typeof WRITER_OUTPUT_TYPE_OPTIONS)[number]["value"];
+
+/**
+ * The diverse drafting angles. The pipeline drafts several of these in parallel
+ * (default 4, the four most distinct first), then a synthesis pass grafts the
+ * strongest material from all of them into one bolder, more human version.
+ */
+export const WRITER_ANGLE_OPTIONS = [
+  {
+    value: "audacious",
+    label: "Bold opener",
+    blurb: "Stakes a real claim from the first line; no warm-up.",
+  },
+  {
+    value: "maker",
+    label: "Maker / builder",
+    blurb: "Leads with what was actually built and shipped.",
+  },
+  {
+    value: "motivation",
+    label: "Motivation-first",
+    blurb: "Opens from why he creates and shares what he makes.",
+  },
+  {
+    value: "user_obsessed",
+    label: "In the problem",
+    blurb: "A PM who lives in the user's problem, evidence-first.",
+  },
+  {
+    value: "trajectory",
+    label: "Trajectory",
+    blurb: "The dual-degree arc aimed squarely at the mission.",
+  },
+] as const;
+
+export type WriterAngleKey = (typeof WRITER_ANGLE_OPTIONS)[number]["value"];
+
+export function writerAngleLabel(value: string): string {
+  return WRITER_ANGLE_OPTIONS.find((a) => a.value === value)?.label ?? value;
+}
+
+/** A single drafted candidate from one angle (the response text only). */
+export interface WriterDraft {
+  angle: WriterAngleKey;
+  body: string;
+}
+
+/** The adversarial judge's scorecard for one draft (0–10 per dimension). */
+export interface WriterJudgment {
+  boldness: number;
+  humanVoice: number;
+  companySpecificity: number;
+  honesty: number;
+  craft: number;
+  /** Sum of the five dimensions (0–50), computed server-side. */
+  total: number;
+  motivationBeatPresent: boolean;
+  hasEmDash: boolean;
+  wordCount: number;
+  /** 1–3 of the strongest lines worth keeping. */
+  keepLines: string[];
+  /** Concrete problems to fix in synthesis. */
+  issues: string[];
+}
+
+/** A draft plus its scorecard, surfaced for transparency. */
+export interface WriterJudgedDraft extends WriterDraft {
+  judgment: WriterJudgment;
+}
+
+/** The final, polished, honesty-checked output of the pipeline. */
+export interface WriterResult {
+  outputType: WriterOutputType;
+  body: string;
+  wordCount: number;
+  /** One line naming which firm specifics (from the JD/notes) were used. */
+  companySpecifics: string;
+  /** One honest caveat if anything was thin or should be verified. */
+  honestyNote?: string | null;
+}
+
 export const DEADLINE_KIND_META: Record<
   string,
   { label: string; color: string }
