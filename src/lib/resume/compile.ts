@@ -1,8 +1,8 @@
 import "server-only";
 
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
 import path from "node:path";
 
 import { PDFDocument } from "pdf-lib";
@@ -63,9 +63,30 @@ function computeFillRatio(aux: string, log: string): number | null {
 // triggers a Turbopack context-module over-bundling warning.
 let defaultTectonicBin = "tectonic";
 
+/**
+ * Resolve the Tectonic binary robustly, in priority order:
+ *  1. TECTONIC_PATH (if set and the file actually exists),
+ *  2. the app's own install location under %LOCALAPPDATA%\JobSearchCommandCenter\
+ *     bin\ (and the home-dir equivalent) — so compile/auto-fit work even when the
+ *     dev server was started without .env.local loaded (a common foot-gun),
+ *  3. the bare `tectonic` command on PATH.
+ * This means "Tectonic isn't installed" can only appear when it truly is absent.
+ */
 function tectonicBin(): string {
   const configured = process.env.TECTONIC_PATH?.trim();
-  return configured && configured.length > 0 ? configured : defaultTectonicBin;
+  const localAppData = process.env.LOCALAPPDATA;
+  const home = homedir();
+  const candidates = [
+    configured && configured.length > 0 ? configured : null,
+    localAppData
+      ? path.join(localAppData, "JobSearchCommandCenter", "bin", "tectonic.exe")
+      : null,
+    home ? path.join(home, ".job-search-command-center", "bin", "tectonic") : null,
+  ].filter((c): c is string => Boolean(c));
+  for (const c of candidates) {
+    if (existsSync(c)) return c;
+  }
+  return defaultTectonicBin;
 }
 
 // Referenced so the binding stays mutable (prevents constant folding).
